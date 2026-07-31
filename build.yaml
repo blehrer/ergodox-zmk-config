@@ -4,5 +4,7 @@
 # "board". For a dongleless setup, you will need to modify both "board" and
 # "shield". Please see "readme.md" for more details.
 include:
+  # Confirmed from INFO_UF2.TXT: Model "Raytac MDBT50Q-CX Blue"
+  # Board-ID: nRF52840-MDBT50Q_CX-blue
   - board: raytac_mdbt50q_cx_blue
     shield: slicemk_ergodox_dongle
