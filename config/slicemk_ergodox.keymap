@@ -1,9 +1,15 @@
 /*
- * Ported from QMK/Oryx layout "macos-st-motions-with-finger-rol" (QJ5Rn)
- * Target: SliceMK ErgoDox Wireless, dongle central
+ * SliceMK ErgoDox Wireless keymap (dongle central).
  *
- * KEY POSITION MAP — derived from the SliceMK default keymap. 77 positions.
- * Position 0 is the dedicated bootloader key and is NOT part of the grid.
+ * Four layers:
+ *   BASE (0)  alphas, numbers, and mods on the home row / thumbs
+ *   SYMB (1)  symbols and function keys
+ *   NAVI (2)  arrows, mouse movement, and media
+ *   NAV3 (3)  extended navigation reached from within NAVI
+ *
+ * KEY POSITION MAP — 77 positions, numbered as the bindings are laid out
+ * row by row below. Position 0 is the dedicated bootloader key and is NOT
+ * part of the grid.
  *
  *   1  2  3  4  5  6  7        8  9 10 11 12 13 14
  *  15 16 17 18 19 20 21       22 23 24 25 26 27 28
@@ -26,32 +32,67 @@
 #define NAVI 2
 #define NAV3 3
 
+/*
+ * BEHAVIOR LEGEND — what the &-prefixed codes below mean, in plain English.
+ *
+ *   &kp X          press key X (a letter, number, or symbol)
+ *   &sk MOD        "sticky"/one-shot modifier: tap it and it applies to just
+ *                  the NEXT key you press, then releases itself
+ *   &sl N          "sticky"/one-shot layer: next key alone comes from layer N
+ *   &mo N          hold to use layer N; releases when you let go
+ *   &to N          switch to layer N and stay there
+ *   &mt MOD X      hold = modifier MOD, tap = key X
+ *   &lm N MOD      hold = layer N AND modifier MOD at the same time (custom)
+ *   &trans         "transparent": do whatever this key does on the layer below
+ *   &none          does nothing
+ *   &caps_word     like Caps Lock, but turns itself off at the end of the word
+ *   &bootloader    reboot into flashing mode (for updating the firmware)
+ *   &mmv / &msc    move the mouse pointer / scroll the mouse wheel
+ *   &mkp BTN       click a mouse button (LCLK left, RCLK right)
+ *
+ *   Custom hold-tap keys defined in the behaviors block below:
+ *   &df0 MOD X     hold modifier MOD, tap key X
+ *   &df1 N X       hold layer N, tap key X
+ *   &dfk X Y       hold key X, tap key Y
+ *   &df11 B1 B2    hold mouse button B1, tap mouse button B2
+ *   &td_left/…     tap = move mouse, double-tap = scroll (one per direction)
+ *   &st_macro_0/1  type the text "-> " / "=> "
+ *
+ * MODIFIER NAMES — L/R = left/right; GUI is the Command/Windows/Super key.
+ *   Codes nest to press several at once, e.g.
+ *     LS(LC(LALT))       = Shift+Ctrl+Alt          ("Meh")
+ *     LS(LC(LA(LGUI)))   = Shift+Ctrl+Alt+GUI      ("Hyper")
+ *     LG(LBKT)           = Command + [
+ *     LA(LC(Y))          = Ctrl+Alt+Y
+ */
+
 / {
     behaviors {
-        /* Oryx dual-function keys. QMK's default LT flavor maps closest to
-           tap-preferred. Global TAPPING_TERM was 193ms. */
-        df0: df0_screenshot_alt {
+        /* Dual-function (hold-tap) keys: holding past the tapping term
+           engages the first binding, a quick tap sends the second.
+           tap-preferred favors the tapped keycode when timing is close. */
+        df0: df0_screenshot_alt {   /* hold a modifier, tap a keycode */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <193>;
             bindings = <&kp>, <&kp>;
         };
-        df1: df1_under_navi {
+        df1: df1_under_navi {   /* hold a layer, tap a keycode */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
-            tapping-term-ms = <107>;   /* TAPPING_TERM - 86 */
+            tapping-term-ms = <107>;   /* short term: layer engages quickly */
             bindings = <&mo>, <&kp>;
         };
-        dfk: dual_func_kp {
+        dfk: dual_func_kp {   /* hold one keycode, tap another */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <193>;
             bindings = <&kp>, <&kp>;
         };
-        df11: df11_mouse_buttons {
+        df11: df11_mouse_buttons {   /* hold one mouse button, tap another */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
@@ -59,7 +100,8 @@
             bindings = <&mkp>, <&mkp>;
         };
 
-        /* QMK LM(layer, mod) — no native ZMK equivalent. */
+        /* Layer-mod: while held, activates a layer and holds a modifier at
+           the same time (first param = layer, second = modifier). */
         lm: layer_mod {
             compatible = "zmk,behavior-macro-two-param";
             #binding-cells = <2>;
@@ -72,9 +114,8 @@
                 ;
         };
 
-        /* Tap dances. QMK had 8; DANCE_4..7 were byte-identical to 0..3,
-           so they collapse to four. Tap = pointer move, double tap = scroll.
-           (QMK fired scroll on double-HOLD; ZMK tap-dance has no hold step.) */
+        /* Mouse tap-dances: a single tap nudges the pointer in a direction,
+           a double tap sends the scroll wheel the same way. */
         td_left: td_mouse_left {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
@@ -121,35 +162,132 @@
     combos {
         compatible = "zmk,combos";
 
-        /* Same-hand combos keep QMK's 50ms COMBO_TERM. */
-        c_pipe      { key-positions = <37 38>;       bindings = <&kp PIPE>;        timeout-ms = <50>; };  /* K L */
-        c_amps      { key-positions = <36 37>;       bindings = <&kp AMPS>;        timeout-ms = <50>; };  /* J K */
-        c_equal     { key-positions = <16 18>;       bindings = <&kp EQUAL>;       timeout-ms = <50>; };  /* Q E */
-        c_plus      { key-positions = <30 32>;       bindings = <&kp PLUS>;        timeout-ms = <50>; };  /* A D */
-        c_bslh      { key-positions = <38 39>;       bindings = <&kp BSLH>;        timeout-ms = <50>; };  /* L ; */
-        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };  /* R + left OSL(1) */
-        c_sl1_mk    { key-positions = <37 50>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* K M */
-        c_sl1_dv    { key-positions = <32 45>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* D V */
-        c_sk_rsft_l { key-positions = <31 32 33>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };  /* S D F */
-        c_sk_lctl   { key-positions = <17 18 19>;    bindings = <&sk LCTRL>;       timeout-ms = <50>; };  /* W E R */
-        c_sk_lalt   { key-positions = <43 44 45>;    bindings = <&sk LALT>;        timeout-ms = <50>; };  /* X C V */
-        c_sk_rctl   { key-positions = <24 25 26>;    bindings = <&sk RCTRL>;       timeout-ms = <50>; };  /* U I O */
-        c_sk_rsft_r { key-positions = <36 37 38>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };  /* J K L */
-        c_sk_ralt   { key-positions = <50 51 52>;    bindings = <&sk RALT>;        timeout-ms = <50>; };  /* M , . */
-        c_lt        { key-positions = <31 32>;       bindings = <&kp LT>;          timeout-ms = <50>; };  /* S D */
-        c_gt        { key-positions = <32 33>;       bindings = <&kp GT>;          timeout-ms = <50>; };  /* D F */
-        c_sk_lgui   { key-positions = <30 31 32 33>; bindings = <&sk LGUI>;        timeout-ms = <50>; };  /* A S D F */
-        c_sk_rgui   { key-positions = <36 37 38 39>; bindings = <&sk RGUI>;        timeout-ms = <50>; };  /* J K L ; */
+        /* Same-hand combos: tight 50ms window, since both keys are pressed
+           by one hand and land almost together. */
 
-        /* Cross-hand combos: loosened to 65ms to absorb the wireless hop. */
-        c_search    { key-positions = <32 37>;       bindings = <&kp C_AC_SEARCH>; timeout-ms = <65>; };  /* D K */
-        c_arrow     { key-positions = <33 36>;       bindings = <&st_macro_0>;     timeout-ms = <65>; };  /* F J  ->  "-> " */
-        c_fatarrow  { key-positions = <18 33 36>;    bindings = <&st_macro_1>;     timeout-ms = <65>; };  /* E F J -> "=> " */
+        /* --- unpaired, left hand (no mirror-image counterpart) --- */
+
+        /*
+         * LHS    q+e ➔ =
+         */
+        c_equal     { key-positions = <16 18>;       bindings = <&kp EQUAL>;       timeout-ms = <50>; };
+
+        /*
+         * LHS    a+d ➔ +
+         */
+        c_plus      { key-positions = <30 32>;       bindings = <&kp PLUS>;        timeout-ms = <50>; };
+
+        /*
+         * LHS    s+d ➔ <
+         */
+        c_lt        { key-positions = <31 32>;       bindings = <&kp LT>;          timeout-ms = <50>; };
+
+        /*
+         * LHS    d+f ➔ >
+         */
+        c_gt        { key-positions = <32 33>;       bindings = <&kp GT>;          timeout-ms = <50>; };
+
+        /* --- unpaired, right hand (no mirror-image counterpart) --- */
+
+        /*
+         * RHS    k+l ➔ |
+         */
+        c_pipe      { key-positions = <37 38>;       bindings = <&kp PIPE>;        timeout-ms = <50>; };
+
+        /*
+         * RHS    j+k ➔ &
+         */
+        c_amps      { key-positions = <36 37>;       bindings = <&kp AMPS>;        timeout-ms = <50>; };
+
+        /*
+         * RHS    l+; ➔ backslash
+         */
+        c_bslh      { key-positions = <38 39>;       bindings = <&kp BSLH>;        timeout-ms = <50>; };
+
+        /* --- isomorphic pairs (left / right mirror images, same action) --- */
+
+        /*
+         * LHS    d+v ➔ next key comes from the symbol layer
+         */
+        c_sl1_dv    { key-positions = <32 45>;       bindings = <&sl 1>;           timeout-ms = <50>; };
+        /*
+         * RHS    k+m ➔ next key comes from the symbol layer
+         */
+        c_sl1_mk    { key-positions = <37 50>;       bindings = <&sl 1>;           timeout-ms = <50>; };
+
+        /*
+         * LHS    s+d+f ➔ Shift the next key
+         */
+        c_sk_lsft_l { key-positions = <31 32 33>;    bindings = <&sk LSHFT>;       timeout-ms = <50>; };
+        /*
+         * RHS    j+k+l ➔ Shift the next key
+         */
+        c_sk_rsft_r { key-positions = <36 37 38>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };
+
+        /*
+         * LHS    w+e+r ➔ Ctrl the next key
+         */
+        c_sk_lctl   { key-positions = <17 18 19>;    bindings = <&sk LCTRL>;       timeout-ms = <50>; };
+        /*
+         * RHS    u+i+o ➔ Ctrl the next key
+         */
+        c_sk_rctl   { key-positions = <24 25 26>;    bindings = <&sk RCTRL>;       timeout-ms = <50>; };
+
+        /*
+         * LHS    x+c+v ➔ Alt the next key
+         */
+        c_sk_lalt   { key-positions = <43 44 45>;    bindings = <&sk LALT>;        timeout-ms = <50>; };
+        /*
+         * RHS    m+,+. ➔ Alt the next key
+         */
+        c_sk_ralt   { key-positions = <50 51 52>;    bindings = <&sk RALT>;        timeout-ms = <50>; };
+
+        /*
+         * LHS    a+s+d+f ➔ Command/GUI the next key
+         */
+        c_sk_lgui   { key-positions = <30 31 32 33>; bindings = <&sk LGUI>;        timeout-ms = <50>; };
+        /*
+         * RHS    j+k+l+; ➔ Command/GUI the next key
+         */
+        c_sk_rgui   { key-positions = <36 37 38 39>; bindings = <&sk RGUI>;        timeout-ms = <50>; };
+
+        /* Cross-hand combos: wider 65ms window, allowing for the two split
+           halves reporting slightly apart over the wireless link. */
+
+        /*
+         * d+k ➔ Search
+         */
+        c_search    { key-positions = <32 37>;       bindings = <&kp C_AC_SEARCH>; timeout-ms = <65>; };
+
+        /*
+         * f+j ➔ types "-> "
+         */
+        c_arrow     { key-positions = <33 36>;       bindings = <&st_macro_0>;     timeout-ms = <65>; };
+
+        /*
+         * e+f+j ➔ types "=> "
+         */
+        c_fatarrow  { key-positions = <18 33 36>;    bindings = <&st_macro_1>;     timeout-ms = <65>; };
     };
 
     keymap {
         compatible = "zmk,keymap";
 
+        /* BASE (0) — everyday typing.
+           Row 1 inner keys (beside 5/6): one-shot Hyper (Shift+Ctrl+Alt+GUI).
+           Row 2 inner keys: Command+[ and Command+] .
+           Row 4 inner keys (beside B/N): one-shot to the SYMBOL layer.
+           Left thumb column (row 5):
+             &lm NAVI LSHFT        hold NAV layer + Shift
+             &df0 LALT LG(LS(N5))  hold Alt, or tap = screenshot (Cmd+Shift+5)
+             &df1 NAVI UNDER       hold NAV layer, or tap = underscore
+           Thumb clusters (both hands):
+             top outer key  one-shot Meh (Shift+Ctrl+Alt)
+             big keys, left:  hold GUI/tap Backspace, hold Ctrl/tap Delete,
+                              Shift
+             big keys, right: Shift, hold Alt/tap Enter, hold GUI/tap Space
+             Page Up on the inner top thumbs, Page Down on the lower thumbs.
+           &caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
 &bootloader
@@ -164,6 +302,14 @@
             >;
         };
 
+        /* SYMB (1) — symbols, function keys, and a right-hand number pad.
+           &to 0 (top-left) returns to BASE.
+           Left hand: F1–F5 across the top, then punctuation and symbols.
+           Row 2 inner keys: Command+Shift+[ / ] (previous/next tab).
+           Right hand: F6 through F11/F12 across the top; the home block is a
+             number pad, where each &dfk Fn N key taps the number and holds the
+             matching function key, with keypad + and * alongside.
+           Thumbs: Volume Up (top) and Volume Down (lower). */
         symbol_layer {
             bindings = <
 &bootloader
@@ -178,6 +324,19 @@
             >;
         };
 
+        /* NAVI (2) — arrows, workspace switching, mouse, and media. Most keys
+           are transparent (fall through to BASE); only marked ones act.
+           Right-hand home row: Left / Down / Up / Right arrows.
+           Row 2 right (Y U I O P): Ctrl+Alt + that key = focus workspace
+             1/2/3/4/X (aerospace). NAVI is usually entered by HOLDING the
+             base-layer &lm NAVI LSHFT key, so Shift is held too and these
+             become Ctrl+Alt+Shift = MOVE the current window to that workspace.
+           Row 4 right: mouse tap-dances (tap = move, double-tap = scroll).
+           Far-right column: Alt+Tab and app shortcuts (Ctrl+Shift+; etc.).
+           Bottom row: Mission Control (show all windows) and voice command.
+           Left thumbs &lm NAV3 <mod>: hold to reach NAV3 while ALSO holding
+             GUI / Ctrl / Alt (see NAV3 below).
+           Right thumb &df11 RCLK LCLK: tap = left click, hold = right click. */
         nav_layer {
             bindings = <
 &bootloader
@@ -192,6 +351,12 @@
             >;
         };
 
+        /* NAV3 (3) — the same shortcuts as NAVI, reached from NAVI by holding
+           one of its &lm NAV3 <mod> thumb keys. Its whole purpose is to STACK
+           an extra modifier (GUI / Ctrl / Alt) on top of the NAVI shortcuts, so
+           the same arrows and workspace keys fire with that modifier added.
+           Extras unique to this layer: top-left inner = Command+Ctrl+F (native
+           fullscreen); the far-right column swaps in Esc and Alt+' . */
         nav3_layer {
             bindings = <
 &bootloader
