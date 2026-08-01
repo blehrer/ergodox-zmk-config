@@ -130,12 +130,18 @@
 
         /* Same-hand combos: tight 50ms window, since both keys are pressed
            by one hand and land almost together. */
-        c_pipe      { key-positions = <37 38>;       bindings = <&kp PIPE>;        timeout-ms = <50>; };  /* K L */
-        c_amps      { key-positions = <36 37>;       bindings = <&kp AMPS>;        timeout-ms = <50>; };  /* J K */
-        c_equal     { key-positions = <16 18>;       bindings = <&kp EQUAL>;       timeout-ms = <50>; };  /* Q E */
-        c_plus      { key-positions = <30 32>;       bindings = <&kp PLUS>;        timeout-ms = <50>; };  /* A D */
-        c_bslh      { key-positions = <38 39>;       bindings = <&kp BSLH>;        timeout-ms = <50>; };  /* L ; */
-        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };  /* R + left sticky-layer key */
+        /* k+l -> | */
+        c_pipe      { key-positions = <37 38>;       bindings = <&kp PIPE>;        timeout-ms = <50>; };
+        /* j+k -> & */
+        c_amps      { key-positions = <36 37>;       bindings = <&kp AMPS>;        timeout-ms = <50>; };
+        /* q+e -> = */
+        c_equal     { key-positions = <16 18>;       bindings = <&kp EQUAL>;       timeout-ms = <50>; };
+        /* a+d -> + */
+        c_plus      { key-positions = <30 32>;       bindings = <&kp PLUS>;        timeout-ms = <50>; };
+        /* l+; -> \ */
+        c_bslh      { key-positions = <38 39>;       bindings = <&kp BSLH>;        timeout-ms = <50>; };
+        /* r + sticky-layer key -> ] */
+        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };
         c_sl1_mk    { key-positions = <37 50>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* K M */
         c_sl1_dv    { key-positions = <32 45>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* D V */
         c_sk_rsft_l { key-positions = <31 32 33>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };  /* S D F */
@@ -144,8 +150,10 @@
         c_sk_rctl   { key-positions = <24 25 26>;    bindings = <&sk RCTRL>;       timeout-ms = <50>; };  /* U I O */
         c_sk_rsft_r { key-positions = <36 37 38>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };  /* J K L */
         c_sk_ralt   { key-positions = <50 51 52>;    bindings = <&sk RALT>;        timeout-ms = <50>; };  /* M , . */
-        c_lt        { key-positions = <31 32>;       bindings = <&kp LT>;          timeout-ms = <50>; };  /* S D */
-        c_gt        { key-positions = <32 33>;       bindings = <&kp GT>;          timeout-ms = <50>; };  /* D F */
+        /* s+d -> < */
+        c_lt        { key-positions = <31 32>;       bindings = <&kp LT>;          timeout-ms = <50>; };
+        /* d+f -> > */
+        c_gt        { key-positions = <32 33>;       bindings = <&kp GT>;          timeout-ms = <50>; };
         c_sk_lgui   { key-positions = <30 31 32 33>; bindings = <&sk LGUI>;        timeout-ms = <50>; };  /* A S D F */
         c_sk_rgui   { key-positions = <36 37 38 39>; bindings = <&sk RGUI>;        timeout-ms = <50>; };  /* J K L ; */
 
