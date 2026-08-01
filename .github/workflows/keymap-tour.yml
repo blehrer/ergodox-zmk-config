@@ -40,6 +40,10 @@ jobs:
             --date "$(date -u +%Y-%m-%d)" \
             --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
       - uses: actions/configure-pages@v5
+        with:
+          # Turn Pages on (source = GitHub Actions) if it isn't already, so the
+          # first deploy doesn't require a manual Settings -> Pages toggle.
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
