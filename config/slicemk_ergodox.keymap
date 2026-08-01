@@ -1,9 +1,15 @@
 /*
- * Ported from QMK/Oryx layout "macos-st-motions-with-finger-rol" (QJ5Rn)
- * Target: SliceMK ErgoDox Wireless, dongle central
+ * SliceMK ErgoDox Wireless keymap (dongle central).
  *
- * KEY POSITION MAP — derived from the SliceMK default keymap. 77 positions.
- * Position 0 is the dedicated bootloader key and is NOT part of the grid.
+ * Four layers:
+ *   BASE (0)  alphas, numbers, and mods on the home row / thumbs
+ *   SYMB (1)  symbols and function keys
+ *   NAVI (2)  arrows, mouse movement, and media
+ *   NAV3 (3)  extended navigation reached from within NAVI
+ *
+ * KEY POSITION MAP — 77 positions, numbered as the bindings are laid out
+ * row by row below. Position 0 is the dedicated bootloader key and is NOT
+ * part of the grid.
  *
  *   1  2  3  4  5  6  7        8  9 10 11 12 13 14
  *  15 16 17 18 19 20 21       22 23 24 25 26 27 28
@@ -28,30 +34,31 @@
 
 / {
     behaviors {
-        /* Oryx dual-function keys. QMK's default LT flavor maps closest to
-           tap-preferred. Global TAPPING_TERM was 193ms. */
-        df0: df0_screenshot_alt {
+        /* Dual-function (hold-tap) keys: holding past the tapping term
+           engages the first binding, a quick tap sends the second.
+           tap-preferred favors the tapped keycode when timing is close. */
+        df0: df0_screenshot_alt {   /* hold a modifier, tap a keycode */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <193>;
             bindings = <&kp>, <&kp>;
         };
-        df1: df1_under_navi {
+        df1: df1_under_navi {   /* hold a layer, tap a keycode */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
-            tapping-term-ms = <107>;   /* TAPPING_TERM - 86 */
+            tapping-term-ms = <107>;   /* short term so the layer engages quickly */
             bindings = <&mo>, <&kp>;
         };
-        dfk: dual_func_kp {
+        dfk: dual_func_kp {   /* hold one keycode, tap another */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <193>;
             bindings = <&kp>, <&kp>;
         };
-        df11: df11_mouse_buttons {
+        df11: df11_mouse_buttons {   /* hold one mouse button, tap another */
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
@@ -59,7 +66,8 @@
             bindings = <&mkp>, <&mkp>;
         };
 
-        /* QMK LM(layer, mod) — no native ZMK equivalent. */
+        /* Layer-mod: while held, activates a layer and holds a modifier at
+           the same time (first param = layer, second = modifier). */
         lm: layer_mod {
             compatible = "zmk,behavior-macro-two-param";
             #binding-cells = <2>;
@@ -72,9 +80,8 @@
                 ;
         };
 
-        /* Tap dances. QMK had 8; DANCE_4..7 were byte-identical to 0..3,
-           so they collapse to four. Tap = pointer move, double tap = scroll.
-           (QMK fired scroll on double-HOLD; ZMK tap-dance has no hold step.) */
+        /* Mouse tap-dances: a single tap nudges the pointer in a direction,
+           a double tap sends the scroll wheel the same way. */
         td_left: td_mouse_left {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
@@ -121,13 +128,14 @@
     combos {
         compatible = "zmk,combos";
 
-        /* Same-hand combos keep QMK's 50ms COMBO_TERM. */
+        /* Same-hand combos: tight 50ms window, since both keys are pressed
+           by one hand and land almost together. */
         c_pipe      { key-positions = <37 38>;       bindings = <&kp PIPE>;        timeout-ms = <50>; };  /* K L */
         c_amps      { key-positions = <36 37>;       bindings = <&kp AMPS>;        timeout-ms = <50>; };  /* J K */
         c_equal     { key-positions = <16 18>;       bindings = <&kp EQUAL>;       timeout-ms = <50>; };  /* Q E */
         c_plus      { key-positions = <30 32>;       bindings = <&kp PLUS>;        timeout-ms = <50>; };  /* A D */
         c_bslh      { key-positions = <38 39>;       bindings = <&kp BSLH>;        timeout-ms = <50>; };  /* L ; */
-        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };  /* R + left OSL(1) */
+        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };  /* R + left sticky-layer key */
         c_sl1_mk    { key-positions = <37 50>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* K M */
         c_sl1_dv    { key-positions = <32 45>;       bindings = <&sl 1>;           timeout-ms = <50>; };  /* D V */
         c_sk_rsft_l { key-positions = <31 32 33>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };  /* S D F */
@@ -141,7 +149,8 @@
         c_sk_lgui   { key-positions = <30 31 32 33>; bindings = <&sk LGUI>;        timeout-ms = <50>; };  /* A S D F */
         c_sk_rgui   { key-positions = <36 37 38 39>; bindings = <&sk RGUI>;        timeout-ms = <50>; };  /* J K L ; */
 
-        /* Cross-hand combos: loosened to 65ms to absorb the wireless hop. */
+        /* Cross-hand combos: wider 65ms window, allowing for the two split
+           halves reporting slightly apart over the wireless link. */
         c_search    { key-positions = <32 37>;       bindings = <&kp C_AC_SEARCH>; timeout-ms = <65>; };  /* D K */
         c_arrow     { key-positions = <33 36>;       bindings = <&st_macro_0>;     timeout-ms = <65>; };  /* F J  ->  "-> " */
         c_fatarrow  { key-positions = <18 33 36>;    bindings = <&st_macro_1>;     timeout-ms = <65>; };  /* E F J -> "=> " */
