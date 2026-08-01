@@ -38,7 +38,7 @@
  *   &kp X          press key X (a letter, number, or symbol)
  *   &sk MOD        "sticky"/one-shot modifier: tap it and it applies to just
  *                  the NEXT key you press, then releases itself
- *   &sl N          "sticky"/one-shot layer: the next key alone comes from layer N
+ *   &sl N          "sticky"/one-shot layer: next key alone comes from layer N
  *   &mo N          hold to use layer N; releases when you let go
  *   &to N          switch to layer N and stay there
  *   &mt MOD X      hold = modifier MOD, tap = key X
@@ -82,7 +82,7 @@
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
-            tapping-term-ms = <107>;   /* short term so the layer engages quickly */
+            tapping-term-ms = <107>;   /* short term: layer engages quickly */
             bindings = <&mo>, <&kp>;
         };
         dfk: dual_func_kp {   /* hold one keycode, tap another */
@@ -215,19 +215,20 @@
         compatible = "zmk,keymap";
 
         /* BASE (0) — everyday typing.
-           Row 1 inner keys (either side of 5/6): one-shot Hyper (Shift+Ctrl+Alt+GUI).
+           Row 1 inner keys (beside 5/6): one-shot Hyper (Shift+Ctrl+Alt+GUI).
            Row 2 inner keys: Command+[ and Command+] .
-           Row 4 inner keys (either side of B/N): one-shot to the SYMBOL layer.
+           Row 4 inner keys (beside B/N): one-shot to the SYMBOL layer.
            Left thumb column (row 5):
-             &lm NAVI LSHFT        hold for the NAV layer while also holding Shift
-             &df0 LALT LG(LS(N5))  hold Alt, or tap for a screenshot (Cmd+Shift+5)
-             &df1 NAVI UNDER       hold for the NAV layer, or tap for underscore
+             &lm NAVI LSHFT        hold NAV layer + Shift
+             &df0 LALT LG(LS(N5))  hold Alt, or tap = screenshot (Cmd+Shift+5)
+             &df1 NAVI UNDER       hold NAV layer, or tap = underscore
            Thumb clusters (both hands):
-             top outer key   one-shot Meh (Shift+Ctrl+Alt)
-             big keys  left:  hold GUI/tap Backspace · hold Ctrl/tap Delete · Shift
-                       right: Shift · hold Alt/tap Enter · hold GUI/tap Space
+             top outer key  one-shot Meh (Shift+Ctrl+Alt)
+             big keys, left:  hold GUI/tap Backspace, hold Ctrl/tap Delete,
+                              Shift
+             big keys, right: Shift, hold Alt/tap Enter, hold GUI/tap Space
              Page Up on the inner top thumbs, Page Down on the lower thumbs.
-           &caps_word (bottom right): Caps Lock that stops at the next word break. */
+           &caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
 &bootloader
@@ -245,7 +246,7 @@
         /* SYMB (1) — symbols, function keys, and a right-hand number pad.
            &to 0 (top-left) returns to BASE.
            Left hand: F1–F5 across the top, then punctuation and symbols.
-           Row 2 inner keys: Command+Shift+[ and Command+Shift+] (previous/next tab).
+           Row 2 inner keys: Command+Shift+[ / ] (previous/next tab).
            Right hand: F6 through F11/F12 across the top; the home block is a
              number pad, where each &dfk Fn N key taps the number and holds the
              matching function key, with keypad + and * alongside.
@@ -265,14 +266,14 @@
         };
 
         /* NAVI (2) — arrows, workspace switching, mouse, and media. Most keys
-           are transparent (they fall through to BASE); only the marked ones act.
+           are transparent (fall through to BASE); only marked ones act.
            Right-hand home row: Left / Down / Up / Right arrows.
            Row 2 right (Y U I O P): Ctrl+Alt + that key = focus workspace
              1/2/3/4/X (aerospace). NAVI is usually entered by HOLDING the
              base-layer &lm NAVI LSHFT key, so Shift is held too and these
              become Ctrl+Alt+Shift = MOVE the current window to that workspace.
-           Row 4 right: mouse tap-dances (tap = move pointer, double-tap = scroll).
-           Far-right column: Alt+Tab plus a few app shortcuts (Ctrl+Shift+; etc.).
+           Row 4 right: mouse tap-dances (tap = move, double-tap = scroll).
+           Far-right column: Alt+Tab and app shortcuts (Ctrl+Shift+; etc.).
            Bottom row: Mission Control (show all windows) and voice command.
            Left thumbs &lm NAV3 <mod>: hold to reach NAV3 while ALSO holding
              GUI / Ctrl / Alt (see NAV3 below).
