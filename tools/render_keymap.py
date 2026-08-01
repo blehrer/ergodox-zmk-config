@@ -9,8 +9,19 @@ Usage: render_keymap.py <keymap-file> [--out index.html] [--commit SHA]
 """
 import argparse
 import html
+import os
 import re
 import sys
+
+# Static assets (CSS / JS / HTML templates) live as real files alongside this
+# script and are inlined at build time, so the generated page stays a single
+# self-contained file while the sources remain editable and reviewable.
+ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tour")
+
+
+def asset(name):
+    with open(os.path.join(ASSET_DIR, name), encoding="utf-8") as f:
+        return f.read()
 
 # ---------------------------------------------------------------------------
 # Physical position map (from the keymap's own comment). col 1..7 left->right,
@@ -105,6 +116,13 @@ KEY = {
 }
 MOD_SYM = {"LS": "⇧", "RS": "⇧", "LC": "⌃", "RC": "⌃",
            "LA": "⌥", "RA": "⌥", "LG": "⌘", "RG": "⌘"}
+# ZMK mouse-button codes -> label (a constant code map, not a hardcoded value)
+MOUSE_BTN = {"LCLK": "L‑clk", "RCLK": "R‑clk", "MCLK": "M‑clk",
+             "MB4": "Btn 4", "MB5": "Btn 5"}
+
+# macro name -> the literal text it types, derived from the keymap's own macro
+# definitions (populated by parse_macros / build; never hardcoded here).
+MACROS = {}
 
 
 def resolve_code(code):
@@ -149,70 +167,87 @@ def resolve_code(code):
     return code, "sym"
 
 
+def mouse_label(code):
+    return MOUSE_BTN.get(code, code)
+
+
 def key_from_binding(token):
     """token like 'kp ESC' / 'mt LGUI BSPC'. Returns dict for rendering."""
     parts = token.split()
-    beh = parts[0]
+    prefix = parts[0]
     args = parts[1:]
     d = {"main": "", "hold": "", "sub": "", "cat": "sym", "raw": "&" + token}
 
-    if beh == "kp":
+    if prefix == "kp":
         lbl, cat = resolve_code(" ".join(args))
         d.update(main=lbl, cat=cat)
-    elif beh == "sk":
+    elif prefix == "sk":
         lbl, _ = resolve_code(" ".join(args))
         d.update(main=lbl, sub="sticky", cat="mod")
-    elif beh == "sl":
+    elif prefix == "sl":
         d.update(main=layer_label(args[0]), sub="→layer", cat="layer")
-    elif beh == "mo":
+    elif prefix == "mo":
         d.update(main=layer_label(args[0]), sub="hold", cat="layer")
-    elif beh == "to":
+    elif prefix == "to":
         d.update(main=layer_label(args[0]), sub="switch", cat="layer")
-    elif beh == "mt":
+    elif prefix == "mt":
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=holdlbl, main=taplbl, cat="mod")
-    elif beh == "lm":
+    elif prefix == "lm":
         lay = layer_label(args[0])
         modlbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=modlbl, main=lay, sub="hold", cat="layer")
-    elif beh == "df0":          # hold modifier / tap key
+    elif prefix == "df0":          # hold modifier / tap key
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=holdlbl, main=taplbl, cat="mod")
-    elif beh == "df1":          # hold layer / tap key
+    elif prefix == "df1":          # hold layer / tap key
         lay = layer_label(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=lay, main=taplbl, cat="layer")
-    elif beh == "dfk":          # hold key / tap key
+    elif prefix == "dfk":          # hold key / tap key
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=holdlbl, main=taplbl, cat="sym")
-    elif beh == "df11":         # hold mouse btn / tap mouse btn
-        d.update(hold="R‑clk", main="L‑clk", cat="mouse")
-    elif beh in ("td_left", "td_right", "td_up", "td_down"):
-        arrow = {"td_left": "←", "td_right": "→", "td_up": "↑", "td_down": "↓"}[beh]
+    elif prefix == "df11":         # hold mouse btn / tap mouse btn — derive both
+        d.update(hold=mouse_label(args[0]), main=mouse_label(args[1]), cat="mouse")
+    elif prefix in ("td_left", "td_right", "td_up", "td_down"):
+        arrow = {"td_left": "←", "td_right": "→", "td_up": "↑", "td_down": "↓"}[prefix]
         d.update(main=arrow, sub="mouse", cat="mouse")
-    elif beh == "st_macro_0":
-        d.update(main="-> ", sub="macro", cat="macro")
-    elif beh == "st_macro_1":
-        d.update(main="=> ", sub="macro", cat="macro")
-    elif beh == "trans":
+    elif prefix in MACROS:         # a macro: show the text it actually types
+        d.update(main=MACROS[prefix], sub="macro", cat="macro")
+    elif prefix == "trans":
         d.update(main="▽", cat="trans")
-    elif beh == "none":
+    elif prefix == "none":
         d.update(main="", cat="none")
-    elif beh == "bootloader":
+    elif prefix == "bootloader":
         d.update(main="BOOT", cat="system")
-    elif beh == "caps_word":
+    elif prefix == "caps_word":
         d.update(main="Caps", sub="word", cat="system")
     else:
-        d.update(main=beh, cat="sym")
+        d.update(main=prefix, cat="sym")
     return d
 
 
 # ---------------------------------------------------------------------------
 # Parse keymap
 # ---------------------------------------------------------------------------
+def parse_macros(text):
+    """Derive each macro's typed text from the keymap's `macros` node, by
+    decoding its &kp sequence (e.g. <&kp MINUS &kp GT &kp SPACE> -> '->␣')."""
+    node = re.search(r"macros\s*\{(.*?)\n    \};", text, re.S)
+    if not node:
+        return {}
+    macros = {}
+    for m in re.finditer(r"(\w+)\s*:\s*\w+\s*\{.*?bindings\s*=\s*<([^>]*)>",
+                         node.group(1), re.S):
+        chars = [resolve_code(kp)[0]
+                 for kp in re.findall(r"&kp\s+(\S+)", m.group(2))]
+        macros[m.group(1)] = "".join(chars)
+    return macros
+
+
 def strip_comment(block):
     """Strip the /* */ delimiters but PRESERVE the comment's internal
     indentation (dedented to the common margin) so nested notes stay legible."""
@@ -488,6 +523,8 @@ def render_legend():
 
 
 def build(keymap_text, meta):
+    MACROS.clear()
+    MACROS.update(parse_macros(keymap_text))
     layers = parse_layers(keymap_text)
     combos = parse_combos(keymap_text)
     nav = "".join(
@@ -501,387 +538,26 @@ def build(keymap_text, meta):
     commit_link = (f'<a href="{repo}/commit/{commit}">{commit[:7]}</a>'
                    if repo and commit and commit != "working copy" else commit)
     panel = meta.get("panel", True)
-    fields = dict(
-        css=CSS, js=JS + (JS_KNOBS if panel else ""), nav=nav, layers=layers_html,
-        combos=render_combos(combos), legend=render_legend(),
-        knobs=KNOBS if panel else "",
-        nlayers=len(layers), ncombos=ncombos, src=src,
-        commit=commit_link, date=esc(meta["date"]))
-    # fragment mode: no doctype/html/head/body — for hosts that supply their own
-    # document skeleton (e.g. the Artifact wrapper). Full mode is standalone.
-    tmpl = BODY if meta.get("fragment") else HTML
-    return tmpl.format(**fields)
+    css = asset("tour.css") + (asset("knobs.css") if panel else "")
+    js = asset("tour.js") + (asset("knobs.js") if panel else "")
+    page = asset("page.html").format(
+        css=css, js=js, knobs=asset("knobs.html") if panel else "",
+        nav=nav, layers=layers_html, combos=render_combos(combos),
+        legend=render_legend(), nlayers=len(layers), ncombos=ncombos,
+        src=src, commit=commit_link, date=esc(meta["date"]))
+    # fragment mode: body content only, for a host that supplies its own document
+    # skeleton (e.g. the Artifact wrapper). Full mode is a standalone document.
+    if meta.get("fragment"):
+        return page
+    return PAGE_HEAD + page + PAGE_TAIL
 
 
-CSS = r"""
-:root{
-  /* live-adjustable geometry — the knob panel writes these */
-  --board-gap:319px; --thumb-inset:374px; --thumb-top:204px; --thumb-rot:18deg;
-  /* Kanso Zen (dark) */
-  --bg:#14171d; --panel:#1c1e25; --board:#090e13; --board-edge:#393b44;
-  --cap:#22262d; --cap-hi:#31374504; --cap-line:#393b44; --ink:#c5c9c7;
-  --ink-dim:#a4a7a4; --ink-faint:#717c7c; --hair:#262a31;
-  --brass:#dca561; --teal:#7aa89f; --blue:#7fb4ca; --violet:#938aa9;
-  --rose:#c4746e; --green:#98bb6c; --accent:#e6c384;
-  --shadow:0 1px 0 #00000055,0 6px 16px -8px #000a;
-  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  --font-mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme:light){
-  :root{
-    /* Kanso Pearl (light) */
-    --bg:#e6e4e0; --panel:#f2f1ef; --board:#cfceca; --board-edge:#b6b5b0;
-    --cap:#fbfbf9; --cap-hi:#00000000; --cap-line:#d4d3cf; --ink:#22262d;
-    --ink-dim:#545464; --ink-faint:#8b8b85; --hair:#d7d6d1;
-    --brass:#836f4a; --teal:#5e857a; --blue:#4d699b; --violet:#766b90;
-    --rose:#c84053; --green:#6f894e; --accent:#9a6a1f;
-    --shadow:0 1px 0 #ffffff,0 6px 16px -10px #0003;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#14171d; --panel:#1c1e25; --board:#090e13; --board-edge:#393b44;
-  --cap:#22262d; --cap-line:#393b44; --ink:#c5c9c7; --ink-dim:#a4a7a4;
-  --ink-faint:#717c7c; --hair:#262a31; --brass:#dca561; --teal:#7aa89f;
-  --blue:#7fb4ca; --violet:#938aa9; --rose:#c4746e; --green:#98bb6c;
-  --accent:#e6c384; --shadow:0 1px 0 #00000055,0 6px 16px -8px #000a;
-}
-:root[data-theme="light"]{
-  --bg:#e6e4e0; --panel:#f2f1ef; --board:#cfceca; --board-edge:#b6b5b0;
-  --cap:#fbfbf9; --cap-line:#d4d3cf; --ink:#22262d; --ink-dim:#545464;
-  --ink-faint:#8b8b85; --hair:#d7d6d1; --brass:#836f4a; --teal:#5e857a;
-  --blue:#4d699b; --violet:#766b90; --rose:#c84053; --green:#6f894e;
-  --accent:#9a6a1f; --shadow:0 1px 0 #ffffff,0 6px 16px -10px #0003;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-sans);
-  line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--ink-faint)}
+PAGE_HEAD = ('<!doctype html><html lang="en"><head>'
+             '<meta charset="utf-8">'
+             '<meta name="viewport" content="width=device-width,initial-scale=1">'
+             '<title>ErgoDox Keymap — Visual Tour</title></head><body>')
+PAGE_TAIL = "</body></html>"
 
-/* header */
-header.hero{border-bottom:1px solid var(--hair);padding:46px 0 30px;
-  background:radial-gradient(120% 140% at 82% -10%,#ffffff08,transparent 60%)}
-.hero h1{font-family:var(--font-mono);font-weight:650;font-size:clamp(26px,4.4vw,40px);
-  margin:.35em 0 .15em;letter-spacing:-.01em;text-wrap:balance}
-.hero h1 .brass{color:var(--brass)}
-.hero p.tag{color:var(--ink-dim);max-width:60ch;margin:.2em 0 0;font-size:16px}
-.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
-.meta .m{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);
-  background:var(--panel);border:1px solid var(--hair);border-radius:999px;
-  padding:4px 11px}
-.meta .m b{color:var(--ink);font-weight:600}
-
-/* sticky nav */
-nav.layers{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
-  backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
-nav.layers .wrap{display:flex;gap:6px;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
-nav.layers a{font-family:var(--font-mono);font-size:13px;color:var(--ink-dim);
-  padding:6px 12px;border-radius:8px;display:flex;align-items:baseline;gap:7px;
-  border:1px solid transparent}
-nav.layers a span{font-size:10px;color:var(--ink-faint)}
-nav.layers a:hover{background:var(--panel);text-decoration:none;color:var(--ink)}
-nav.layers a.active{background:var(--panel);border-color:var(--hair);color:var(--ink)}
-nav.layers a.active{box-shadow:inset 0 -2px 0 var(--accent)}
-
-main{padding:8px 0 40px}
-section{padding:34px 0;border-bottom:1px solid var(--hair)}
-.layer-head,.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
-h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
-  letter-spacing:.02em}
-.summary{color:var(--ink-dim);font-size:15px;font-style:italic}
-.desc{font-family:var(--font-mono);font-size:12.5px;line-height:1.6;color:var(--ink-dim);
-  margin:0;padding:14px 18px 16px;overflow-x:auto}
-/* one block per source line; padding-left = its indent, so wrapped text hangs
-   under the first character instead of falling back to the margin. */
-.nl{white-space:pre-wrap;padding-left:calc(var(--i,0) * 1ch)}
-.nl.nh{color:var(--ink);font-weight:650}
-.nl.gap{height:.9em}
-.desc .tok{color:var(--brass);font-weight:600}
-.notes{margin-top:18px;border:1px solid var(--hair);border-radius:8px;
-  background:var(--panel);overflow:hidden}
-.notes>summary{cursor:pointer;font-family:var(--font-mono);font-size:11.5px;
-  letter-spacing:.04em;color:var(--ink-dim);padding:10px 14px;list-style:none;
-  user-select:none}
-.notes>summary::-webkit-details-marker{display:none}
-.notes>summary::before{content:"▸  ";color:var(--ink-faint)}
-.notes[open]>summary::before{content:"▾  "}
-.notes[open]>summary{border-bottom:1px solid var(--hair)}
-.notes .desc{border-left:3px solid var(--accent)}
-
-/* board */
-/* let the board use the full viewport width (it's the centrepiece), not just
-   the text column, so it never gets clipped by the page's max-width */
-.board-scroll{overflow-x:auto;padding:12px 20px 6px;width:100vw;
-  margin-inline:calc(50% - 50vw)}
-/* the board is two half-clusters with a centre gap between them */
-/* size to content (so the frame hugs the board) and centre with auto margins,
-   which collapse to 0 when it overflows so BOTH sides stay scrollable */
-.board{display:flex;align-items:flex-start;gap:var(--board-gap);
-  width:fit-content;margin-inline:auto;
-  background:var(--board);border:1px solid var(--board-edge);
-  border-radius:16px;padding:24px 30px 30px;box-shadow:var(--shadow)}
-:root{--u:52px}
-
-/* each half wraps a heading landmark + the key cluster. The heading only shows
-   once the halves stack (narrow screens); side-by-side it's hidden. */
-.half{position:relative;flex:none;width:429px}
-.half-head{display:none}
-.stage{position:relative}
-.cluster{position:relative;width:429px;height:496px;flex:none}
-
-/* ---- stacked / card mode: below this width the two halves stack vertically,
-   each in its own framed card with an LHS/RHS + layer-name landmark. The thumbs
-   keep their natural inboard spread (as if the centre gap were still there), so
-   the cluster is widened to CW to contain them and the whole thing is scaled to
-   fit the viewport — no key overlaps, no clipping. ---- */
-@media (max-width:960px){
-  /* CW/CH = full content box of one half incl. the inboard thumb spread.
-     --scale (set by JS to fit the viewport) shrinks the cluster on narrow
-     screens — CSS calc can't derive a unitless ratio from vw, so JS owns it. */
-  .board{--cw:562px; --ch:430px;
-    flex-direction:column;align-items:center;gap:22px;
-    background:transparent;border:none;box-shadow:none;padding:4px 0}
-  .board-scroll{padding:12px 8px 6px;overflow-x:auto}
-  .half{width:fit-content;max-width:100%;
-    background:var(--board);border:1px solid var(--board-edge);
-    border-radius:16px;box-shadow:var(--shadow);padding:14px 20px 20px}
-  .half-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;
-    padding:0 2px}
-  .half-side{font-family:var(--font-mono);font-weight:700;font-size:12px;
-    letter-spacing:.14em;color:var(--accent)}
-  .half-layer{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);
-    letter-spacing:.08em;text-transform:uppercase}
-  .stage{width:calc(var(--cw) * var(--scale,1));
-    height:calc(var(--ch) * var(--scale,1));margin-inline:auto}
-  .cluster{position:absolute;top:0;left:0;width:var(--cw);height:var(--ch);
-    transform:scale(var(--scale,1));transform-origin:top left}
-  /* the right half's thumb points into the (now absent) centre gap — shift the
-     whole right cluster inboard so that spread lands inside the card instead. */
-  .cluster.right{--rhs-shift:130px}
-}
-.g-main{position:absolute;top:0;display:grid;grid-auto-rows:var(--u);gap:6px}
-.cluster.left  .g-main{left:0;grid-template-columns:81px repeat(5,var(--u))}
-.cluster.right .g-main{left:calc(58px + var(--rhs-shift,0px));
-  grid-template-columns:repeat(5,var(--u)) 81px}
-.g-inner{position:absolute;top:0;width:var(--u)}
-.cluster.left  .g-inner{left:377px}
-.cluster.right .g-inner{left:var(--rhs-shift,0px)}
-.g-inner .key{position:absolute;left:0;width:var(--u)}
-.g-thumb{position:absolute;display:grid;grid-template-columns:repeat(3,var(--u));
-  grid-auto-rows:var(--u);gap:6px}
-.cluster.left  .g-thumb{left:var(--thumb-inset);top:var(--thumb-top);
-  transform:rotate(var(--thumb-rot));transform-origin:50% 35%}
-.cluster.right .g-thumb{left:calc(261px - var(--thumb-inset) + var(--rhs-shift,0px));
-  top:var(--thumb-top);
-  transform:rotate(calc(-1 * var(--thumb-rot)));transform-origin:50% 35%}
-/* a 1.5u-tall key = 1.5 pitches minus one gap (matches the 2u thumb keys) */
-.key.tall{height:calc(var(--u)*1.5 + 3px)}
-.cell{display:flex}
-.key{--c:var(--ink-dim);width:100%;height:100%;min-width:0;border-radius:8px;
-  background:linear-gradient(var(--cap),color-mix(in srgb,var(--cap) 92%,#000));
-  border:1px solid var(--cap-line);box-shadow:var(--shadow);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1px;padding:3px;position:relative;overflow:hidden;cursor:default}
-.key.big .k-main{font-size:15px}
-.key::before{content:"";position:absolute;inset:0 0 auto 0;height:42%;
-  background:linear-gradient(#ffffff10,transparent);pointer-events:none}
-.k-main{font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--ink);
-  line-height:1;text-align:center;z-index:1}
-.k-hold{font-family:var(--font-mono);font-size:9px;color:var(--c);line-height:1;
-  align-self:flex-start;z-index:1;font-weight:600}
-.k-sub{font-family:var(--font-mono);font-size:8px;letter-spacing:.03em;
-  color:var(--ink-faint);line-height:1;z-index:1;text-transform:uppercase}
-/* category accents: a top stripe + tinted legend */
-.key:not(.ghost){border-top:2px solid var(--c)}
-.cat-alpha,.cat-sym,.cat-num{--c:var(--cap-line)}
-.cat-num .k-main{color:var(--ink)}
-.cat-mod{--c:var(--brass)} .cat-mod .k-main{color:var(--brass)}
-.cat-layer{--c:var(--teal)} .cat-layer .k-main{color:var(--teal)}
-.cat-shortcut{--c:var(--blue)} .cat-shortcut .k-main{color:var(--blue)}
-.cat-media{--c:var(--violet)} .cat-media .k-main{color:var(--violet)}
-.cat-mouse{--c:var(--violet)} .cat-mouse .k-main{color:var(--violet)}
-.cat-system{--c:var(--rose)} .cat-system .k-main{color:var(--rose)}
-.cat-macro{--c:var(--green)} .cat-macro .k-main{color:var(--green)}
-.key.ghost{background:transparent;border-style:dashed;border-color:var(--hair);
-  box-shadow:none}
-.key.ghost::before{display:none}
-.key.ghost .k-main{color:var(--ink-faint);font-size:12px;font-weight:400}
-
-/* combos */
-.lead{color:var(--ink-dim);max-width:64ch;margin:0 0 20px}
-.combo-group{font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;
-  color:var(--ink-faint);text-transform:uppercase;margin:20px 0 10px;font-weight:600}
-.chip-row{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:flex;align-items:center;gap:9px;background:var(--panel);
-  border:1px solid var(--hair);border-radius:10px;padding:8px 11px;font-size:13px}
-.chip-tag{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 5px;
-  border-radius:5px;letter-spacing:.05em}
-.t-lhs{background:color-mix(in srgb,var(--teal) 20%,transparent);color:var(--teal)}
-.t-rhs{background:color-mix(in srgb,var(--blue) 20%,transparent);color:var(--blue)}
-.chip-keys{display:inline-flex;align-items:center;gap:3px}
-.kc{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink);
-  background:linear-gradient(var(--cap),color-mix(in srgb,var(--cap) 90%,#000));
-  border:1px solid var(--cap-line);border-top-width:2px;border-radius:6px;
-  min-width:23px;height:25px;display:inline-flex;align-items:center;
-  justify-content:center;padding:0 6px;box-shadow:var(--shadow)}
-.kc.wide{padding:0 9px}
-.plus{color:var(--ink-faint);font-weight:600;font-family:var(--font-mono);margin:0 1px}
-.chip-arrow{color:var(--accent);font-weight:700}
-.chip-fx{color:var(--ink-dim)}
-.chip-ms{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);
-  margin-left:2px;border-left:1px solid var(--hair);padding-left:8px}
-
-/* legend */
-.legend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:10px;margin-bottom:22px}
-.leg{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-dim)}
-.key.sw{width:34px;height:26px;flex:none}
-.key.sw::before{height:50%}
-.glossary{display:grid;gap:10px}
-.gl{display:flex;gap:12px;align-items:baseline;font-size:13.5px;color:var(--ink-dim);
-  max-width:70ch}
-.gl code{font-family:var(--font-mono);font-size:12px;color:var(--ink);background:var(--panel);
-  border:1px solid var(--hair);border-radius:5px;padding:2px 7px;white-space:nowrap;flex:none;
-  min-width:74px;text-align:center}
-
-footer{padding:26px 0 60px;color:var(--ink-faint);font-size:12.5px;font-family:var(--font-mono)}
-footer a{color:var(--ink-dim)}
-
-/* live geometry knob panel */
-.knobs{position:fixed;right:16px;bottom:16px;z-index:60;width:236px;
-  background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px);
-  border:1px solid var(--hair);border-radius:12px;box-shadow:0 10px 34px -10px #0008;
-  font-family:var(--font-mono);font-size:12px;color:var(--ink);overflow:hidden}
-.knobs-head{display:flex;justify-content:space-between;align-items:center;
-  padding:9px 12px;border-bottom:1px solid var(--hair);letter-spacing:.08em;
-  text-transform:uppercase;font-size:10px;color:var(--ink-faint)}
-.knobs-head button{background:none;border:none;color:var(--ink-dim);cursor:pointer;
-  font-size:15px;line-height:1;padding:0 3px}
-.knobs-body{padding:11px 12px;display:grid;gap:13px}
-.knobs.collapsed .knobs-body{display:none}
-.knobs label{display:grid;gap:5px;color:var(--ink-dim)}
-.knobs label output{color:var(--accent);font-weight:600}
-.knobs input[type=range]{width:100%;accent-color:var(--accent);margin:0;cursor:pointer}
-.knobs-out{border-top:1px solid var(--hair);padding-top:9px;color:var(--ink-faint);
-  font-size:11px;line-height:1.5}
-.knobs-copy{background:var(--bg);color:var(--ink-dim);border:1px solid var(--hair);
-  border-radius:7px;padding:6px 10px;font-family:var(--font-mono);font-size:11px;
-  cursor:pointer}
-.knobs-copy:hover{border-color:var(--accent);color:var(--accent)}
-@media (max-width:640px){.knobs{display:none}}
-"""
-
-JS = r"""
-const links=[...document.querySelectorAll('nav.layers a')];
-const secs=links.map(a=>document.getElementById(a.dataset.target)).filter(Boolean);
-const io=new IntersectionObserver((es)=>{
-  es.forEach(e=>{if(e.isIntersecting){
-    const id=e.target.id;
-    links.forEach(a=>a.classList.toggle('active',a.dataset.target===id));
-  }});
-},{rootMargin:'-45% 0px -50% 0px'});
-secs.forEach(s=>io.observe(s));
-
-// Fit each stacked half-card to the viewport. CSS calc can't turn vw into a
-// unitless scale factor, so compute it here. Keep CW/MARGIN in sync with the
-// stacked-mode CSS (--cw and the card/scroll padding around the stage).
-(function(){
-  const CW=562, MARGIN=64, MIN=0.4;
-  const mq=window.matchMedia('(max-width:960px)');
-  const boards=[...document.querySelectorAll('.board')];
-  function fit(){
-    const avail=document.documentElement.clientWidth-MARGIN;
-    const s=mq.matches?Math.max(MIN,Math.min(1,avail/CW)):1;
-    boards.forEach(b=>b.style.setProperty('--scale',String(s)));
-  }
-  fit();
-  window.addEventListener('resize',fit,{passive:true});
-  if(mq.addEventListener)mq.addEventListener('change',fit);
-})();
-"""
-
-JS_KNOBS = r"""
-// live geometry knobs -> CSS variables
-(function(){
-  const R=document.documentElement, out=document.getElementById('k-out');
-  const map=[['k-gap','--board-gap','px'],['k-inset','--thumb-inset','px'],
-             ['k-top','--thumb-top','px'],['k-rot','--thumb-rot','deg']];
-  function refresh(){
-    const g=id=>document.getElementById(id).value;
-    out.textContent='gap '+g('k-gap')+' · inset '+g('k-inset')
-      +' · top '+g('k-top')+' · angle '+g('k-rot');
-  }
-  map.forEach(([id,v,u])=>{
-    const el=document.getElementById(id), o=document.getElementById(id+'-o');
-    const upd=()=>{R.style.setProperty(v,el.value+u);o.textContent=el.value;refresh();};
-    el.addEventListener('input',upd); upd();
-  });
-  document.getElementById('k-toggle').addEventListener('click',function(){
-    const k=document.getElementById('knobs');k.classList.toggle('collapsed');
-    this.textContent=k.classList.contains('collapsed')?'+':'–';
-  });
-  document.getElementById('k-copy').addEventListener('click',function(){
-    if(navigator.clipboard)navigator.clipboard.writeText(out.textContent);
-    this.textContent='copied';setTimeout(()=>this.textContent='copy values',1100);
-  });
-})();
-"""
-
-BODY = """<style>{css}</style>
-<header class="hero"><div class="wrap">
-  <span class="eyebrow">SliceMK ErgoDox Wireless · ZMK</span>
-  <h1>Keymap <span class="brass">Layout Tour</span></h1>
-  <p class="tag">A visual walk through every layer of the keymap — generated
-     straight from the firmware config, so it can never drift out of date.</p>
-  <div class="meta">
-    <span class="m"><b>{nlayers}</b> layers</span>
-    <span class="m"><b>{ncombos}</b> combos</span>
-    <span class="m">source&nbsp;<b>{src}</b></span>
-    <span class="m">rev&nbsp;<b>{commit}</b></span>
-  </div>
-</div></header>
-<nav class="layers"><div class="wrap">{nav}
-  <a href="#combos" data-target="combos">Combos<span>◇</span></a>
-  <a href="#legend" data-target="legend">Legend<span>▤</span></a>
-</div></nav>
-<main class="wrap">
-{layers}
-{combos}
-{legend}
-</main>
-<footer class="wrap">Auto-generated from <b>{src}</b> · rev {commit} · {date}.
-  Edit the keymap, push, and this page rebuilds itself.</footer>
-{knobs}
-<script>{js}</script>
-"""
-
-HTML = ('<!doctype html><html lang="en"><head>'
-        '<meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>ErgoDox Keymap — Visual Tour</title></head><body>'
-        + BODY + '</body></html>')
-
-KNOBS = """<div class="knobs" id="knobs">
-  <div class="knobs-head"><span>◐ geometry</span>
-    <button id="k-toggle" title="collapse" aria-label="collapse">–</button></div>
-  <div class="knobs-body">
-    <label>center gap · <output id="k-gap-o">319</output>px
-      <input type="range" id="k-gap" min="0" max="480" value="319"></label>
-    <label>thumb inset · <output id="k-inset-o">374</output>px
-      <input type="range" id="k-inset" min="240" max="430" value="374"></label>
-    <label>thumb top · <output id="k-top-o">204</output>px
-      <input type="range" id="k-top" min="120" max="300" value="204"></label>
-    <label>thumb angle · <output id="k-rot-o">18</output>&deg;
-      <input type="range" id="k-rot" min="0" max="34" value="18"></label>
-    <div class="knobs-out" id="k-out"></div>
-    <button class="knobs-copy" id="k-copy">copy values</button>
-  </div>
-</div>"""
 
 
 def main():
