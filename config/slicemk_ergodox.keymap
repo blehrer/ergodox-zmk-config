@@ -282,11 +282,10 @@
              &df0 LALT LG(LS(N5))  hold Alt, or tap = screenshot (Cmd+Shift+5)
              &df1 NAVI UNDER       hold NAV layer, or tap = underscore
            Thumb clusters (both hands):
-             top outer key  one-shot Meh (Shift+Ctrl+Alt)
-             big keys, left:  hold GUI/tap Backspace, hold Ctrl/tap Delete,
-                              Shift
-             big keys, right: Shift, hold Alt/tap Enter, hold GUI/tap Space
-             Page Up on the inner top thumbs, Page Down on the lower thumbs.
+             Meh (one-shot Shift+Ctrl+Alt) above the inner big key.
+             Big keys — left: hold GUI/tap Backspace, hold Ctrl/tap Delete;
+                        right: hold Alt/tap Enter, hold GUI/tap Space.
+             Inner column, top to bottom: Page Up, Page Down, Shift.
            &caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
@@ -297,8 +296,8 @@
 &kp LBKT   &kp Z   &kp X   &kp C   &kp V   &kp B   &sl 1                   &sl 1                 &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RBKT
 &lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &df1 NAVI UNDER                            &kp MINUS  &trans  &trans  &trans   &caps_word
                                           &sk LS(LC(LALT))  &kp PG_UP          &kp PG_UP  &sk LS(LC(LALT))
-                          &mt LGUI BSPC  &mt LCTRL DEL  &kp LSHFT            &kp RSHFT  &mt RALT RET  &mt RGUI SPACE
-                                                         &kp PG_DN           &kp PG_DN
+                          &mt LGUI BSPC  &mt LCTRL DEL  &kp PG_DN            &kp PG_DN  &mt RALT RET  &mt RGUI SPACE
+                                                         &kp LSHFT           &kp RSHFT
             >;
         };
 
