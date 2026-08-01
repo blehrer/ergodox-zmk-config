@@ -179,9 +179,6 @@
         /* LHS  d+f -> > */
         c_gt        { key-positions = <32 33>;       bindings = <&kp GT>;          timeout-ms = <50>; };
 
-        /* LHS  r + sticky-layer key -> ] */
-        c_rbrc      { key-positions = <19 47>;       bindings = <&kp RBRC>;        timeout-ms = <50>; };
-
         /* --- unpaired, right hand (no mirror-image counterpart) --- */
 
         /* RHS  k+l -> | */
