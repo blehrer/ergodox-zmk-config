@@ -1,0 +1,26 @@
+<style>{css}</style>
+<header class="hero"><div class="wrap">
+  <span class="eyebrow">SliceMK ErgoDox Wireless · ZMK</span>
+  <h1>Keymap <span class="brass">Layout Tour</span></h1>
+  <p class="tag">A visual walk through every layer of the keymap — generated
+     straight from the firmware config, so it can never drift out of date.</p>
+  <div class="meta">
+    <span class="m"><b>{nlayers}</b> layers</span>
+    <span class="m"><b>{ncombos}</b> combos</span>
+    <span class="m">source&nbsp;<b>{src}</b></span>
+    <span class="m">rev&nbsp;<b>{commit}</b></span>
+  </div>
+</div></header>
+<nav class="layers"><div class="wrap">{nav}
+  <a href="#combos" data-target="combos">Combos<span>◇</span></a>
+  <a href="#legend" data-target="legend">Legend<span>▤</span></a>
+</div></nav>
+<main class="wrap">
+{layers}
+{combos}
+{legend}
+</main>
+<footer class="wrap">Auto-generated from <b>{src}</b> · rev {commit} · {date}.
+  Edit the keymap, push, and this page rebuilds itself.</footer>
+{knobs}
+<script>{js}</script>

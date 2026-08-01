@@ -1,0 +1,55 @@
+name: Keymap Layout Tour
+
+# Regenerate the visual keymap tour from the firmware config and publish it to
+# GitHub Pages. Runs whenever the keymap (or the generator/workflow) changes on
+# the default branch, so the site can never drift out of date with the firmware.
+on:
+  push:
+    branches: [main]
+    paths:
+      - config/slicemk_ergodox.keymap
+      - tools/render_keymap.py
+      - .github/workflows/keymap-tour.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; newer pushes supersede in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Render the tour
+        run: |
+          mkdir -p public
+          python3 tools/render_keymap.py config/slicemk_ergodox.keymap \
+            --no-panel \
+            --out public/index.html \
+            --commit "${GITHUB_SHA}" \
+            --date "$(date -u +%Y-%m-%d)" \
+            --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -8,6 +8,25 @@ options for customization.
 If you have questions, feel free to join the
 [SliceMK Discord](https://discord.gg/FQvyd7BAaA).
 
+# Keymap Layout Tour
+
+A visual, always-up-to-date walkthrough of every layer and combo is published to
+GitHub Pages at
+**https://blehrer.github.io/ergodox-zmk-config/**. It is generated directly from
+`config/slicemk_ergodox.keymap` by `tools/render_keymap.py`, and the
+[Keymap Layout Tour workflow](.github/workflows/keymap-tour.yml) rebuilds and
+redeploys it automatically on every push that touches the keymap, so it can
+never drift out of date with the firmware.
+
+To preview it locally:
+
+```sh
+python3 tools/render_keymap.py config/slicemk_ergodox.keymap --out tour.html
+```
+
+(The generator uses only the Python standard library. Add `--no-panel` to omit
+the live geometry-adjustment panel, as the published build does.)
+
 # Getting Started
 
 - Fork this repository on GitHub.
