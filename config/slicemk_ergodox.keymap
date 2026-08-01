@@ -190,7 +190,7 @@
         c_sl1_dv    { key-positions = <32 45>;       bindings = <&sl 1>;           timeout-ms = <50>; };
 
         /* LHS  s+d+f -> Shift the next key */
-        c_sk_rsft_l { key-positions = <31 32 33>;    bindings = <&sk RSHFT>;       timeout-ms = <50>; };
+        c_sk_lsft_l { key-positions = <31 32 33>;    bindings = <&sk LSHFT>;       timeout-ms = <50>; };
 
         /* LHS  w+e+r -> Ctrl the next key */
         c_sk_lctl   { key-positions = <17 18 19>;    bindings = <&sk LCTRL>;       timeout-ms = <50>; };
