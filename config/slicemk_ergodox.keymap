@@ -282,11 +282,10 @@
              &df0 LALT LG(LS(N5))  hold Alt, or tap = screenshot (Cmd+Shift+5)
              &df1 NAVI UNDER       hold NAV layer, or tap = underscore
            Thumb clusters (both hands):
-             top outer key  one-shot Meh (Shift+Ctrl+Alt)
-             big keys, left:  hold GUI/tap Backspace, hold Ctrl/tap Delete,
-                              Shift
-             big keys, right: Shift, hold Alt/tap Enter, hold GUI/tap Space
-             Page Up on the inner top thumbs, Page Down on the lower thumbs.
+             Meh (one-shot Shift+Ctrl+Alt) above the inner big key.
+             Big keys — left: hold GUI/tap Backspace, hold Ctrl/tap Delete;
+                        right: hold Alt/tap Enter, hold GUI/tap Space.
+             Inner column, top to bottom: Page Up, Page Down, Shift.
            &caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
@@ -297,8 +296,8 @@
 &kp LBKT   &kp Z   &kp X   &kp C   &kp V   &kp B   &sl 1                   &sl 1                 &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RBKT
 &lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &df1 NAVI UNDER                            &kp MINUS  &trans  &trans  &trans   &caps_word
                                           &sk LS(LC(LALT))  &kp PG_UP          &kp PG_UP  &sk LS(LC(LALT))
-                          &mt LGUI BSPC  &mt LCTRL DEL  &kp LSHFT            &kp RSHFT  &mt RALT RET  &mt RGUI SPACE
-                                                         &kp PG_DN           &kp PG_DN
+                          &mt LGUI BSPC  &mt LCTRL DEL  &kp PG_DN            &kp PG_DN  &mt RALT RET  &mt RGUI SPACE
+                                                         &kp LSHFT           &kp RSHFT
             >;
         };
 
@@ -309,7 +308,7 @@
            Right hand: F6 through F11/F12 across the top; the home block is a
              number pad, where each &dfk Fn N key taps the number and holds the
              matching function key, with keypad + and * alongside.
-           Thumbs: Volume Up (top) and Volume Down (lower). */
+           Thumb inner column: Volume Up (top), Volume Down (below it). */
         symbol_layer {
             bindings = <
 &bootloader
@@ -319,8 +318,8 @@
 &trans  &kp PRCNT  &kp CARET  &kp LBKT  &kp RBKT  &kp TILDE  &to 0             &kp RGUI          &kp CARET        &dfk F1 N1  &dfk F2 N2  &dfk F3 N3  &trans   &trans
 &trans  &kp AMPS   &kp ASTRK  &kp LT    &kp GT                                                   &kp N0  &trans  &trans  &trans  &trans
                                         &trans  &kp C_VOL_UP           &kp C_VOL_UP  &trans
-                                &trans  &trans  &trans                 &trans  &trans  &trans
-                                                &kp C_VOL_DN           &kp C_VOL_DN
+                                &trans  &trans  &kp C_VOL_DN           &kp C_VOL_DN  &trans  &trans
+                                                &trans                 &trans
             >;
         };
 
@@ -346,8 +345,8 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans     &trans  &td_left       &td_down       &td_up         &td_right      &kp LC(LS(FSLH))  &trans
 &trans  &trans  &trans  &trans  &trans                             &kp C_AC_DESKTOP_SHOW_ALL_WINDOWS  &trans  &trans  &kp C_VOICE_COMMAND  &trans
                                         &trans  &trans                    &kp LA(LC(Y))  &trans
-                  &lm NAV3 LGUI  &lm NAV3 LCTRL  &trans                   &trans  &lm NAV3 LALT  &df11 RCLK LCLK
-                                                 &trans                   &kp LA(LC(O))
+                  &lm NAV3 LGUI  &lm NAV3 LCTRL  &trans                   &kp LA(LC(O))  &lm NAV3 LALT  &df11 RCLK LCLK
+                                                 &trans                   &trans
             >;
         };
 
@@ -366,8 +365,8 @@
 &trans  &trans  &trans  &trans  &trans  &trans  &trans          &trans  &td_left       &td_down       &td_up         &td_right      &kp LC(LS(FSLH))  &trans
 &trans  &trans  &trans  &trans  &trans                                  &trans  &trans  &trans  &trans  &trans
                                         &trans  &trans                 &kp LA(LC(Y))  &trans
-                                &trans  &trans  &trans                 &trans  &trans  &df11 RCLK LCLK
-                                                &trans                 &kp LA(LC(O))
+                                &trans  &trans  &trans                 &kp LA(LC(O))  &trans  &df11 RCLK LCLK
+                                                &trans                 &trans
             >;
         };
     };
