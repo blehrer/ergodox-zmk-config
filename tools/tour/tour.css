@@ -5,6 +5,7 @@
   --bg:#14171d; --panel:#1c1e25; --board:#090e13; --board-edge:#393b44;
   --cap:#22262d; --cap-hi:#31374504; --cap-line:#393b44; --ink:#c5c9c7;
   --ink-dim:#a4a7a4; --ink-faint:#717c7c; --hair:#262a31;
+  --ghost-edge:var(--hair);
   --brass:#dca561; --teal:#7aa89f; --blue:#7fb4ca; --violet:#938aa9;
   --rose:#c4746e; --green:#98bb6c; --accent:#e6c384;
   --shadow:0 1px 0 #00000055,0 6px 16px -8px #000a;
@@ -17,6 +18,7 @@
     --bg:#e6e4e0; --panel:#f2f1ef; --board:#cfceca; --board-edge:#b6b5b0;
     --cap:#fbfbf9; --cap-hi:#00000000; --cap-line:#d4d3cf; --ink:#22262d;
     --ink-dim:#545464; --ink-faint:#8b8b85; --hair:#d7d6d1;
+    --ghost-edge:#a7a69f;
     --brass:#836f4a; --teal:#5e857a; --blue:#4d699b; --violet:#766b90;
     --rose:#c84053; --green:#6f894e; --accent:#9a6a1f;
     --shadow:0 1px 0 #ffffff,0 6px 16px -10px #0003;
@@ -26,6 +28,7 @@
   --bg:#14171d; --panel:#1c1e25; --board:#090e13; --board-edge:#393b44;
   --cap:#22262d; --cap-line:#393b44; --ink:#c5c9c7; --ink-dim:#a4a7a4;
   --ink-faint:#717c7c; --hair:#262a31; --brass:#dca561; --teal:#7aa89f;
+  --ghost-edge:var(--hair);
   --blue:#7fb4ca; --violet:#938aa9; --rose:#c4746e; --green:#98bb6c;
   --accent:#e6c384; --shadow:0 1px 0 #00000055,0 6px 16px -8px #000a;
 }
@@ -33,6 +36,7 @@
   --bg:#e6e4e0; --panel:#f2f1ef; --board:#cfceca; --board-edge:#b6b5b0;
   --cap:#fbfbf9; --cap-line:#d4d3cf; --ink:#22262d; --ink-dim:#545464;
   --ink-faint:#8b8b85; --hair:#d7d6d1; --brass:#836f4a; --teal:#5e857a;
+  --ghost-edge:#a7a69f;
   --blue:#4d699b; --violet:#766b90; --rose:#c84053; --green:#6f894e;
   --accent:#9a6a1f; --shadow:0 1px 0 #ffffff,0 6px 16px -10px #0003;
 }
@@ -193,7 +197,7 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
 .cat-mouse{--c:var(--violet)} .cat-mouse .k-main{color:var(--violet)}
 .cat-system{--c:var(--rose)} .cat-system .k-main{color:var(--rose)}
 .cat-macro{--c:var(--green)} .cat-macro .k-main{color:var(--green)}
-.key.ghost{background:transparent;border-style:dashed;border-color:var(--hair);
+.key.ghost{background:transparent;border-style:dashed;border-color:var(--ghost-edge);
   box-shadow:none}
 .key.ghost::before{display:none}
 .key.ghost .k-main{color:var(--ink-faint);font-size:12px;font-weight:400}
