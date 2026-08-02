@@ -190,7 +190,7 @@ def key_from_binding(token):
         d.update(main=layer_label(args[0]), sub="hold", cat="layer")
     elif prefix == "to":
         d.update(main=layer_label(args[0]), sub="switch", cat="layer")
-    elif prefix == "mt":
+    elif prefix in ("mt", "tmt"):   # mod-tap (tmt = tap-preferred thumb variant)
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
         d.update(hold=holdlbl, main=taplbl, cat="mod")
