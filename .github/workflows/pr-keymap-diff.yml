@@ -1,0 +1,128 @@
+name: Keymap Diff Preview
+
+# On a PR that changes the keymap, render a before/after image of every changed
+# layer (changed keys ringed red=before / green=after) and post it as a comment.
+# Images are hosted on a dedicated orphan branch (pr-previews) that never merges
+# into main, so normal checkouts never carry generated images.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - config/slicemk_ergodox.keymap
+
+permissions:
+  contents: write        # push preview images to the pr-previews branch
+  pull-requests: write   # post/update the preview comment
+
+concurrency:
+  group: keymap-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # Same-repo PRs only — a PR from a fork gets a read-only token that can
+    # neither push the images nor comment.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PREVIEW_BRANCH: pr-previews
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+
+      - name: Render before/after diff pages
+        id: render
+        run: |
+          git show "$BASE_SHA:config/slicemk_ergodox.keymap" > /tmp/before.keymap
+          mkdir -p diff
+          layers=$(python3 tools/render_keymap.py config/slicemk_ergodox.keymap \
+            --diff-base /tmp/before.keymap --diff-dir diff)
+          echo "layers=$(echo $layers)" >> "$GITHUB_OUTPUT"
+
+      - name: Screenshot and crop
+        if: steps.render.outputs.layers != ''
+        run: |
+          python3 -m pip install --quiet pillow
+          for f in diff/diff-*.html; do
+            "${{ steps.chrome.outputs.chrome-path }}" --headless --disable-gpu \
+              --no-sandbox --hide-scrollbars --force-device-scale-factor=2 \
+              --window-size=1320,1900 --screenshot="${f%.html}.png" "file://$PWD/$f"
+          done
+          python3 - <<'PY'
+          import glob
+          from PIL import Image, ImageChops
+          for p in glob.glob("diff/diff-*.png"):
+              im = Image.open(p)
+              bg = Image.new(im.mode, im.size, im.getpixel((0, 0)))
+              bbox = ImageChops.difference(im, bg).getbbox()
+              if bbox:
+                  l, t, r, b = bbox
+                  pad = 24
+                  im = im.crop((max(0, l - pad), max(0, t - pad),
+                                min(im.size[0], r + pad), min(im.size[1], b + pad)))
+              im.save(p)
+          PY
+
+      - name: Publish images to the previews branch
+        if: steps.render.outputs.layers != ''
+        run: |
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          remote="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          # Retry to tolerate a concurrent PR pushing to the same branch.
+          for attempt in 1 2 3; do
+            work=$(mktemp -d); cd "$work"; git init -q; git remote add origin "$remote"
+            if git fetch -q --depth 1 origin "$PREVIEW_BRANCH"; then
+              git reset -q --hard FETCH_HEAD; git checkout -q -B "$PREVIEW_BRANCH"
+            else
+              git checkout -q --orphan "$PREVIEW_BRANCH"
+            fi
+            rm -rf "$PR"                       # keep only the latest shots per PR
+            dest="$PR/$HEAD_SHA"; mkdir -p "$dest"
+            cp "$GITHUB_WORKSPACE"/diff/diff-*.png "$dest"/
+            git add -A
+            git commit -q -m "keymap diff previews for #$PR @ ${HEAD_SHA:0:7} [skip ci]" \
+              || { echo "no changes"; exit 0; }
+            if git push -q origin "$PREVIEW_BRANCH"; then exit 0; fi
+            echo "push race, retrying ($attempt)"; cd /; rm -rf "$work"; sleep 3
+          done
+          echo "could not publish previews after retries" >&2; exit 1
+
+      - name: Upsert the PR comment
+        if: steps.render.outputs.layers != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const layers = `${{ steps.render.outputs.layers }}`.trim().split(/\s+/).filter(Boolean);
+            const pr = context.payload.pull_request.number;
+            const sha = context.payload.pull_request.head.sha;
+            const raw = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/pr-previews/${pr}/${sha}`;
+            const marker = "<!-- keymap-diff-preview -->";
+            let body = `${marker}\n### ⌨️ Keymap layout diff\n\n` +
+              `Changed layer(s) at \`${sha.slice(0, 7)}\` — 🔴 **before** / 🟢 **after**, changed keys ringed.\n\n`;
+            for (const layer of layers) {
+              body += `<details${layers.length === 1 ? " open" : ""}>` +
+                `<summary><b>${layer}</b> layer</summary>\n\n` +
+                `![${layer} layer diff](${raw}/diff-${layer}.png)\n\n</details>\n`;
+            }
+            body += `\n<sub>Auto-generated from <code>config/slicemk_ergodox.keymap</code> on every push.</sub>\n`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr, body });
+            }
