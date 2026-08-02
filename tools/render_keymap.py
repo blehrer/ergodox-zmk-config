@@ -378,27 +378,32 @@ def describe(d):
     return " / ".join(bits)
 
 
-def render_half(binds, side, layer_short):
+def render_half(binds, side, layer_short, highlight=None):
     outer = OUTER_L if side == "left" else OUTER_R
     off = OFF_L6 if side == "left" else OFF_R6
     inner = INNER_L if side == "left" else INNER_R
     thumb = THUMB_L if side == "left" else THUMB_R
+    hl = highlight or set()
+
+    def extra(p, base=""):
+        # tag positions that differ between the two revisions (diff mode)
+        return (base + (" chg" if p in hl else "")).strip()
 
     # grid 1: outer 6 columns (with per-column stagger)
     cells = [f'<div class="cell" style="grid-column:{c};grid-row:{r}">'
-             + render_key(binds.get(p), f"transform:translateY({off[c]}px)")
+             + render_key(binds.get(p), f"transform:translateY({off[c]}px)", extra(p))
              + "</div>" for p, (c, r) in outer.items()]
     g_main = f'<div class="g-main">{"".join(cells)}</div>'
 
     # grid 2: inner column (absolute keys, edges aligned to the alpha column)
     ikeys = [render_key(binds.get(p), f"top:{top}px;height:{h}px",
-                        "tall" if h > U else "") for p, top, h in inner]
+                        extra(p, "tall" if h > U else "")) for p, top, h in inner]
     g_inner = f'<div class="g-inner">{"".join(ikeys)}</div>'
 
     # grid 3: thumb cluster (its own grid, positioned + rotated via CSS)
     tcells = [f'<div class="cell" style="grid-column:{c} / span {cs};'
               f'grid-row:{r} / span {rs}">'
-              + render_key(binds.get(p), "", "big" if rs > 1 else "") + "</div>"
+              + render_key(binds.get(p), "", extra(p, "big" if rs > 1 else "")) + "</div>"
               for p, (c, r, cs, rs) in thumb.items()]
     g_thumb = f'<div class="g-thumb">{"".join(tcells)}</div>'
 
@@ -411,9 +416,9 @@ def render_half(binds, side, layer_short):
     return f'<div class="half {side}">{head}{stage}</div>'
 
 
-def render_board(binds, layer_short):
-    left = render_half(binds, "left", layer_short)
-    right = render_half(binds, "right", layer_short)
+def render_board(binds, layer_short, highlight=None):
+    left = render_half(binds, "left", layer_short, highlight)
+    right = render_half(binds, "right", layer_short, highlight)
     return (f'<div class="board-scroll"><div class="board">'
             f'{left}{right}</div></div>')
 
@@ -558,6 +563,39 @@ PAGE_HEAD = ('<!doctype html><html lang="en"><head>'
              '<title>ErgoDox Keymap — Visual Tour</title></head><body>')
 PAGE_TAIL = "</body></html>"
 
+DIFF_HEAD = ('<!doctype html><html lang="en" data-theme="light"><head>'
+             '<meta charset="utf-8"><title>Keymap diff</title>'
+             '<style>{css}</style></head><body>')
+
+
+def build_diff(before_text, after_text):
+    """Compare two keymap revisions and return {SHORT: standalone HTML} for each
+    layer whose bindings changed. Each page shows the before board (changed keys
+    ringed red) above the after board (ringed green)."""
+    MACROS.clear()
+    MACROS.update(parse_macros(after_text))
+    before = {l["short"]: l for l in parse_layers(before_text)}
+    after = {l["short"]: l for l in parse_layers(after_text)}
+    css = asset("tour.css") + asset("diff.css")
+    pages = {}
+    for short, la in after.items():
+        lb = before.get(short)
+        if lb is None:
+            continue
+        changed = {p for p in la["binds"] if lb["binds"].get(p) != la["binds"].get(p)}
+        if not changed:
+            continue
+        poslist = ", ".join(str(p) for p in sorted(changed))
+        body = (
+            f'<section class="before"><div class="diff-title">● Before</div>'
+            f'<div class="diff-sub">{esc(short)} layer</div>'
+            f'{render_board(lb["binds"], short, changed)}</section>'
+            f'<section class="after"><div class="diff-title">● After</div>'
+            f'<div class="diff-sub">{esc(short)} layer · positions {poslist}</div>'
+            f'{render_board(la["binds"], short, changed)}</section>')
+        pages[short] = DIFF_HEAD.format(css=css) + body + PAGE_TAIL
+    return pages
+
 
 
 def main():
@@ -572,8 +610,24 @@ def main():
                     help="omit the live geometry knob panel (for publishing)")
     ap.add_argument("--fragment", action="store_true",
                     help="emit body content only (no <html>/<head>/<body>)")
+    ap.add_argument("--diff-base", metavar="KEYMAP",
+                    help="render a before/after diff against this earlier keymap")
+    ap.add_argument("--diff-dir", default=".",
+                    help="output dir for --diff-base pages (default: cwd)")
     a = ap.parse_args()
     text = open(a.keymap, encoding="utf-8").read()
+
+    if a.diff_base:
+        before = open(a.diff_base, encoding="utf-8").read()
+        pages = build_diff(before, text)
+        for short, page in pages.items():
+            path = os.path.join(a.diff_dir, f"diff-{short}.html")
+            open(path, "w", encoding="utf-8").write(page)
+            print(f"wrote {path} ({len(page)} bytes)", file=sys.stderr)
+        # stdout lists the changed layers, one per line, for the caller
+        sys.stdout.write("".join(f"{s}\n" for s in pages))
+        return
+
     out = build(text, {"commit": a.commit, "date": a.date,
                        "repo_url": a.repo_url, "source": a.source,
                        "panel": a.panel, "fragment": a.fragment})
