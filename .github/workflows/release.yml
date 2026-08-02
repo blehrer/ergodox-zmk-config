@@ -1,9 +1,10 @@
 name: Release Firmware
 
 # Build the central firmware from the current keymap and publish it as a
-# GitHub release. Every merge into main refreshes a rolling "latest"
-# prerelease so the newest build is always one click away. Pushing a v* tag
-# (or dispatching with a tag) cuts a permanent, versioned release instead.
+# GitHub release. Every merge into main refreshes a rolling "latest" release
+# so the newest build is always the one shown on the repo landing page.
+# Pushing a v* tag (or dispatching with a tag) cuts a permanent, versioned
+# release alongside it.
 # Peripheral firmware is downloaded separately (see the release body).
 on:
   push:
@@ -57,10 +58,12 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
             echo "rolling=false" >> "$GITHUB_OUTPUT"
           else
-            # Merge into main (or blank dispatch) -> rolling "latest" prerelease.
+            # Merge into main (or blank dispatch) -> rolling "latest" release.
+            # A full (non-pre) release so it wins the "Latest" badge on the
+            # repo landing page; GitHub hides prereleases from that widget.
             echo "tag=latest" >> "$GITHUB_OUTPUT"
             echo "name=Latest firmware (main)" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
             echo "rolling=true" >> "$GITHUB_OUTPUT"
           fi
 
