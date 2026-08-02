@@ -1,20 +1,29 @@
 name: Release Firmware
 
 # Build the central firmware from the current keymap and publish it as a
-# GitHub release. Trigger it manually (optionally naming a tag) or by pushing
-# a v* tag. Peripheral firmware is downloaded separately (see the release body).
+# GitHub release. Every merge into main refreshes a rolling "latest"
+# prerelease so the newest build is always one click away. Pushing a v* tag
+# (or dispatching with a tag) cuts a permanent, versioned release instead.
+# Peripheral firmware is downloaded separately (see the release body).
 on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (blank = date-based vYYYY.MM.DD)"
+        description: "Release tag (blank = rolling 'latest' prerelease)"
         required: false
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
+
+# One release run per ref. A newer push to main supersedes an in-flight
+# "latest" build; tag refs each get their own group and never cancel.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Reuse the exact same SliceMK build the CI uses; it uploads the central
@@ -32,25 +41,49 @@ jobs:
           name: firmware
           path: firmware
 
-      - name: Resolve release tag
-        id: tag
+      - name: Resolve release target
+        id: target
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # A pushed v* tag -> permanent versioned release.
             echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "rolling=false" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ github.event.inputs.tag }}" ]; then
+            # Manual dispatch naming a tag -> permanent versioned release.
             echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "name=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "rolling=false" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=v$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
+            # Merge into main (or blank dispatch) -> rolling "latest" prerelease.
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "name=Latest firmware (main)" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "rolling=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Show firmware files
         run: find firmware -type f -print
 
+      # Delete the previous "latest" release + tag so the recreated one points
+      # at this commit (a moving tag can't just be overwritten in place).
+      - name: Reset rolling latest release
+        if: steps.target.outputs.rolling == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest \
+            --repo "${GITHUB_REPOSITORY}" \
+            --cleanup-tag --yes || true
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ steps.tag.outputs.tag }}
+          tag_name: ${{ steps.target.outputs.tag }}
+          name: ${{ steps.target.outputs.name }}
+          prerelease: ${{ steps.target.outputs.prerelease }}
           files: firmware/**
           fail_on_unmatched_files: true
           generate_release_notes: true
