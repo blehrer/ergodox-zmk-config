@@ -1,0 +1,62 @@
+name: Release Firmware
+
+# Build the central firmware from the current keymap and publish it as a
+# GitHub release. Trigger it manually (optionally naming a tag) or by pushing
+# a v* tag. Peripheral firmware is downloaded separately (see the release body).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (blank = date-based vYYYY.MM.DD)"
+        required: false
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  # Reuse the exact same SliceMK build the CI uses; it uploads the central
+  # firmware as an artifact named "firmware" (upload-artifact@v4).
+  build:
+    uses: slicemk/zmk/.github/workflows/build-user-config.yml@main
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: firmware
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v$(date -u +%Y.%m.%d)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Show firmware files
+        run: find firmware -type f -print
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          files: firmware/**
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            Central firmware (`.uf2`) built from `config/slicemk_ergodox.keymap` at this revision.
+
+            **Flashing:** put the central half/dongle into bootloader mode and copy the matching `.uf2` onto it.
+
+            **Peripheral(s):** GitHub Actions only builds the central — download peripheral firmware separately from the [SliceMK docs](https://docs.slicemk.com/keyboard/ergodox/peripheral/).

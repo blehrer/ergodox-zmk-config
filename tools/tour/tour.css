@@ -59,6 +59,8 @@ header.hero{border-bottom:1px solid var(--hair);padding:46px 0 30px;
   background:var(--panel);border:1px solid var(--hair);border-radius:999px;
   padding:4px 11px}
 .meta .m b{color:var(--ink);font-weight:600}
+.meta a.m.repo{color:var(--accent);text-decoration:none}
+.meta a.m.repo:hover{border-color:var(--accent);background:var(--panel)}
 
 /* sticky nav */
 nav.layers{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);

@@ -542,6 +542,8 @@ def build(keymap_text, meta):
     repo = esc(meta["repo_url"])
     commit_link = (f'<a href="{repo}/commit/{commit}">{commit[:7]}</a>'
                    if repo and commit and commit != "working copy" else commit)
+    repo_link = (f'<a class="m repo" href="{repo}" target="_blank" '
+                 f'rel="noopener">GitHub&nbsp;↗</a>' if repo else "")
     panel = meta.get("panel", True)
     css = asset("tour.css") + (asset("knobs.css") if panel else "")
     js = asset("tour.js") + (asset("knobs.js") if panel else "")
@@ -549,7 +551,7 @@ def build(keymap_text, meta):
         css=css, js=js, knobs=asset("knobs.html") if panel else "",
         nav=nav, layers=layers_html, combos=render_combos(combos),
         legend=render_legend(), nlayers=len(layers), ncombos=ncombos,
-        src=src, commit=commit_link, date=esc(meta["date"]))
+        src=src, commit=commit_link, date=esc(meta["date"]), repo_link=repo_link)
     # fragment mode: body content only, for a host that supplies its own document
     # skeleton (e.g. the Artifact wrapper). Full mode is a standalone document.
     if meta.get("fragment"):
