@@ -52,6 +52,8 @@
  *
  *   Custom hold-tap keys defined in the behaviors block below:
  *   &df0 MOD X     hold modifier MOD, tap key X
+ *   &tmt MOD X     thumb mod-tap: like &mt but tap-preferred — a quick tap
+ *                  types the key, only a deliberate hold sends the modifier
  *   &df1 N X       hold layer N, tap key X
  *   &dfk X Y       hold key X, tap key Y
  *   &df11 B1 B2    hold mouse button B1, tap mouse button B2
@@ -98,6 +100,18 @@
             flavor = "tap-preferred";
             tapping-term-ms = <193>;
             bindings = <&mkp>, <&mkp>;
+        };
+
+        /* Thumb mod-taps: like the built-in &mt, but tap-preferred with a
+           slightly longer term. During fast typing an interrupting key no
+           longer forces the hold, so e.g. space-then-a-letter types a space
+           instead of firing the modifier; only a deliberate hold sends MOD. */
+        tmt: thumb_mod_tap {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <220>;
+            bindings = <&kp>, <&kp>;
         };
 
         /* Layer-mod: while held, activates a layer and holds a modifier at
@@ -296,7 +310,7 @@
 &kp LBKT   &kp Z   &kp X   &kp C   &kp V   &kp B   &sl 1                   &sl 1                 &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RBKT
 &lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &df1 NAVI UNDER                            &kp MINUS  &trans  &trans  &trans   &caps_word
                                           &sk LS(LC(LALT))  &kp PG_UP          &kp PG_UP  &sk LS(LC(LALT))
-                          &mt LGUI BSPC  &mt LCTRL DEL  &kp PG_DN            &kp PG_DN  &mt RALT RET  &mt RGUI SPACE
+                          &tmt LGUI BSPC  &tmt LCTRL DEL  &kp PG_DN            &kp PG_DN  &tmt RALT RET  &tmt RGUI SPACE
                                                          &kp LSHFT           &kp RSHFT
             >;
         };
