@@ -294,7 +294,7 @@
            Left thumb column (row 5):
              &lm NAVI LSHFT        hold NAV layer + Shift
              &df0 LALT LG(LS(N5))  hold Alt, or tap = screenshot (Cmd+Shift+5)
-             &df1 NAVI UNDER       hold NAV layer, or tap = underscore
+             &mo NAVI              hold NAV layer
            Thumb clusters (both hands):
              Meh (one-shot Shift+Ctrl+Alt) above the inner big key.
              Big keys — left: hold GUI/tap Backspace, hold Ctrl/tap Delete;
@@ -308,7 +308,7 @@
 &kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T   &kp LG(LBKT)            &kp RG(RBKT)          &kp Y   &kp U   &kp I      &kp O    &kp P     &trans
 &kp GRAVE  &kp A   &kp S   &kp D   &kp F   &kp G                                                 &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp SQT
 &kp LBKT   &kp Z   &kp X   &kp C   &kp V   &kp B   &sl 1                   &sl 1                 &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RBKT
-&lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &df1 NAVI UNDER                            &kp MINUS  &trans  &trans  &trans   &caps_word
+&lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &mo NAVI                                   &kp MINUS  &trans  &trans  &trans   &caps_word
                                           &sk LS(LC(LALT))  &kp PG_UP          &kp PG_UP  &sk LS(LC(LALT))
                           &tmt LGUI BSPC  &tmt LCTRL DEL  &kp PG_DN            &kp PG_DN  &tmt RALT RET  &tmt RGUI SPACE
                                                          &kp LSHFT           &kp RSHFT
