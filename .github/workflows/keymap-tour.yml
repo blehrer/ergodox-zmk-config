@@ -9,6 +9,7 @@ on:
     paths:
       - config/slicemk_ergodox.keymap
       - tools/render_keymap.py
+      - tools/tour/**
       - .github/workflows/keymap-tour.yml
   workflow_dispatch:
 
