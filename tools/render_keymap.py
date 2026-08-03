@@ -226,7 +226,7 @@ def key_from_binding(token):
         d.update(main="", cat="none")
     elif prefix == "bootloader":
         d.update(main="BOOT", cat="system")
-    elif prefix == "caps_word":
+    elif prefix in ("caps_word", "extended_caps_word"):
         d.update(main="Caps", sub="word", cat="system")
     else:
         d.update(main=prefix, cat="sym")

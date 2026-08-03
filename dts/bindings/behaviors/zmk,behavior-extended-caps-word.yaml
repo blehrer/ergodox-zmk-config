@@ -1,0 +1,15 @@
+# Copyright (c) 2021 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: Extended caps word (QMK-style MINUS handling)
+
+compatible: "zmk,behavior-extended-caps-word"
+
+include: zero_param.yaml
+
+properties:
+  continue-list:
+    type: array
+    required: true
+  mods:
+    type: int

@@ -65,6 +65,29 @@ up the new build; re-run the script if you were too early.
 ./tools/install-githooks.sh
 ```
 
+# TODO
+
+## Extended caps word ([ZMK PR #1742](https://github.com/zmkfirmware/zmk/pull/1742))
+
+PR #1742 adds a `shift-list` property to stock `&caps_word` so keys like
+`MINUS` can stay in the word and get shifted to `_`, matching QMK caps word.
+It has been open since 2023 and is not in upstream ZMK or SliceMK yet.
+
+**Workaround (current):** this repo ships a small local ZMK module
+(`src/behavior_extended_caps_word.c`, loaded via `zephyr/module.yml`) and uses
+`&extended_caps_word` in the keymap. The behavior hardcodes MINUS shifting and
+does not expose `shift-list`.
+
+**Plan when PR #1742 lands in SliceMK ZMK:**
+
+- [ ] Confirm SliceMK's ZMK fork includes the merged PR (or point `west.yml` at a
+      revision that does).
+- [ ] Replace `&extended_caps_word` with stock `&caps_word` and
+      `shift-list = <MINUS>` (and adjust `continue-list` as needed).
+- [ ] Remove the local module: `src/`, `dts/`, `zephyr/module.yml`,
+      `CMakeLists.txt`.
+- [ ] Rebuild and test `MY_CONSTANT`-style typing on hardware.
+
 # Customization
 
 - To modify your keymap, edit `config/slicemk_ergodox.keymap`.

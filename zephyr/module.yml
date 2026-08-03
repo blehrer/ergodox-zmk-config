@@ -1,0 +1,5 @@
+name: ergodox-extended-caps-word
+build:
+  cmake: .
+  settings:
+    dts_root: .

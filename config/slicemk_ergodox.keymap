@@ -46,7 +46,7 @@
  *   &lm N MOD      hold = layer N AND modifier MOD at the same time (custom)
  *   &trans         "transparent": do whatever this key does on the layer below
  *   &none          does nothing
- *   &caps_word     like Caps Lock, but turns itself off at the end of the word
+ *   &extended_caps_word  like Caps Lock for one word; MINUS stays in-word and becomes _
  *   &bootloader    reboot into flashing mode (for updating the firmware)
  *   &mmv / &msc    move the mouse pointer / scroll the mouse wheel
  *   &mkp BTN       click a mouse button (LCLK left, RCLK right)
@@ -126,6 +126,13 @@
                 , <&macro_param_2to1>, <&macro_release &kp MACRO_PLACEHOLDER>
                 , <&macro_param_1to1>, <&macro_release &mo MACRO_PLACEHOLDER>
                 ;
+        };
+
+        /* Extended caps word: alphas + MINUS keep the word going; MINUS → _ . */
+        extended_caps_word: extended_caps_word {
+            compatible = "zmk,behavior-extended-caps-word";
+            #binding-cells = <0>;
+            continue-list = <UNDERSCORE BACKSPACE DELETE MINUS>;
         };
 
     };
@@ -289,7 +296,7 @@
              Big keys — left: hold GUI/tap Backspace, hold Ctrl/tap Delete;
                         right: hold Alt/tap Enter, hold GUI/tap Space.
              Inner column, top to bottom: Page Up, Page Down, Shift.
-           &caps_word (bottom right): Caps Lock that ends at the next word. */
+           &extended_caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
 &bootloader
@@ -297,7 +304,7 @@
 &kp TAB    &kp Q   &kp W   &kp E   &kp R   &kp T   &kp LG(LBKT)            &kp RG(RBKT)          &kp Y   &kp U   &kp I      &kp O    &kp P     &trans
 &kp GRAVE  &kp A   &kp S   &kp D   &kp F   &kp G                                                 &kp H   &kp J   &kp K      &kp L    &kp SEMI  &kp SQT
 &kp LBKT   &kp Z   &kp X   &kp C   &kp V   &kp B   &sl 1                   &sl 1                 &kp N   &kp M   &kp COMMA  &kp DOT  &kp FSLH  &kp RBKT
-&lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &mo NAVI                                   &kp MINUS  &trans  &trans  &trans   &caps_word
+&lm NAVI LSHFT  &df0 LALT LG(LS(N5))  &trans  &trans  &mo NAVI                                   &kp MINUS  &trans  &trans  &trans   &extended_caps_word
                                           &sk LS(LC(LALT))  &kp PG_UP          &kp PG_UP  &sk LS(LC(LALT))
                           &tmt LGUI BSPC  &tmt LCTRL DEL  &kp PG_DN            &kp PG_DN  &tmt RALT RET  &tmt RGUI SPACE
                                                          &kp LSHFT           &kp RSHFT
