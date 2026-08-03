@@ -54,7 +54,8 @@
  *   Custom hold-tap keys defined in the behaviors block below:
  *   &df0 MOD X     hold modifier MOD, tap key X
  *   &tmt MOD X     thumb mod-tap: like &mt but tap-preferred — a quick tap
- *                  types the key, only a deliberate hold sends the modifier
+ *                  types the key, only a deliberate hold sends the modifier;
+ *                  tap then hold again within quick-tap-ms repeats the tap key
  *   &df1 N X       hold layer N, tap key X
  *   &dfk X Y       hold key X, tap key Y
  *   &df11 B1 B2    hold mouse button B1, tap mouse button B2
@@ -105,12 +106,15 @@
         /* Thumb mod-taps: like the built-in &mt, but tap-preferred with a
            slightly longer term. During fast typing an interrupting key no
            longer forces the hold, so e.g. space-then-a-letter types a space
-           instead of firing the modifier; only a deliberate hold sends MOD. */
+           instead of firing the modifier; only a deliberate hold sends MOD.
+           quick-tap-ms: after a tap, press again within the window to hold
+           the tap key so OS repeat kicks in (e.g. tap-then-hold Del). */
         tmt: thumb_mod_tap {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";
             tapping-term-ms = <220>;
+            quick-tap-ms = <200>;
             bindings = <&kp>, <&kp>;
         };
 
