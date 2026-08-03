@@ -51,7 +51,11 @@ to the rolling [**latest** release](https://github.com/blehrer/ergodox-zmk-confi
 
 Put the **USB dongle** in bootloader mode first (double-tap its reset button
 while plugged in). On macOS the volume mounts as **`MDBT50QBOOT`**. The script
-uses `cp -X` so macOS extended-attribute errors do not block the copy.
+strips macOS extended attributes from the `.uf2` before copy (downloads often
+carry `com.apple.provenance`, which makes `cp` fail with “Permission denied”).
+
+If copy still fails, check that the volume is writable and that Terminal (or
+Cursor) has removable-volume access under System Settings → Privacy & Security.
 
 Options: `--volume NAME`, `--timeout SEC`, `--no-wait` (fail if not mounted).
 Downloaded firmware is cached under `.firmware-cache/` (gitignored).

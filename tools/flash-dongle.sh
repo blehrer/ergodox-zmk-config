@@ -55,24 +55,54 @@ download_latest() {
     mkdir -p "$CACHE"
     dest="${CACHE}/${DEFAULT_UF2}"
     echo "Downloading latest from github.com/${slug} ..."
-    curl -fsSL -o "$dest" \
-        "https://github.com/${slug}/releases/download/latest/${DEFAULT_UF2}"
+    # cat into place so curl's com.apple.provenance xattr never lands on the UF2.
+    curl -fsSL "https://github.com/${slug}/releases/download/latest/${DEFAULT_UF2}" \
+        | cat > "${dest}.part"
+    mv "${dest}.part" "$dest"
     UF2="$dest"
+}
+
+# Write UF2 bytes without macOS metadata (cp preserves xattrs/provenance).
+flash_bytes() {
+    local vol="$1"
+    cat "$UF2" > "${vol}/firmware.uf2"
 }
 
 copy_uf2() {
     local vol="/Volumes/${VOLUME}"
-    # ponytail: cp -X is macOS-only; plain cp elsewhere (Linux UF2 mounts vary).
-    if cp -X "$UF2" "$vol/" 2>/dev/null; then
+    local name dest
+
+    if [[ ! -d "$vol" ]]; then
+        echo "error: ${vol} is not mounted" >&2
+        exit 1
+    fi
+    if ! touch "${vol}/.flash_test" 2>/dev/null; then
+        echo "error: ${vol} is not writable" >&2
+        echo "hint: eject and re-enter bootloader mode; check System Settings → Privacy for Terminal/Cursor removable volume access." >&2
+        exit 1
+    fi
+    rm -f "${vol}/.flash_test"
+
+    # Strip any xattrs on cached files from older downloads.
+    xattr -cr "$UF2" 2>/dev/null || true
+
+    name="firmware.uf2"
+    # ponytail: cat avoids macOS cp/xattr issues; fall back to cp variants on Linux.
+    if flash_bytes "$vol"; then
         :
-    elif cp "$UF2" "$vol/"; then
-        :
+    elif COPYFILE_DISABLE=1 cp -X "$UF2" "$vol/"; then
+        name="$(basename "$UF2")"
+    elif ditto --norsrc --noextattr "$UF2" "${vol}/$(basename "$UF2")" 2>/dev/null; then
+        name="$(basename "$UF2")"
+    elif COPYFILE_DISABLE=1 cp "$UF2" "$vol/"; then
+        name="$(basename "$UF2")"
     else
         echo "error: copy to ${vol}/ failed" >&2
+        ls -la "$vol" 2>&1 || true
         exit 1
     fi
     sync 2>/dev/null || true
-    echo "Flashed $(basename "$UF2") to ${vol}/ — dongle should reboot."
+    echo "Flashed ${name} to ${vol}/ — dongle should reboot."
 }
 
 while [[ $# -gt 0 ]]; do
