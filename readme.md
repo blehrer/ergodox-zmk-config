@@ -56,6 +56,15 @@ uses `cp -X` so macOS extended-attribute errors do not block the copy.
 Options: `--volume NAME`, `--timeout SEC`, `--no-wait` (fail if not mounted).
 Downloaded firmware is cached under `.firmware-cache/` (gitignored).
 
+**Optional:** install a `pre-push` hook that runs `./tools/flash-dongle.sh --latest`
+after every push to `main` on a `github.com` remote (background — put the dongle
+in bootloader mode when it prompts you). CI must finish before `--latest` picks
+up the new build; re-run the script if you were too early.
+
+```sh
+./tools/install-githooks.sh
+```
+
 # Customization
 
 - To modify your keymap, edit `config/slicemk_ergodox.keymap`.

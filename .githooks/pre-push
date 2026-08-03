@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# After a push to github.com/main, flash the dongle from the rolling release.
+#
+# Git has no post-push hook; we allow the push, then run flash-dongle.sh in the
+# background. ponytail: the release tag moves only after CI finishes — put the
+# dongle in bootloader mode when prompted, or re-run flash-dongle.sh --latest.
+set -euo pipefail
+
+remote_url="${2:-}"
+[[ "$remote_url" == *github.com* ]] || exit 0
+
+pushing_main=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    [[ -n "${remote_ref:-}" && "$remote_ref" == refs/heads/main ]] && pushing_main=1
+done
+
+[[ "$pushing_main" -eq 1 ]] || exit 0
+
+root="$(git rev-parse --show-toplevel)"
+flash="${root}/tools/flash-dongle.sh"
+[[ -x "$flash" ]] || {
+    echo "pre-push: ${flash} not found, skipping dongle flash" >&2
+    exit 0
+}
+
+(
+    sleep 2
+    echo "pre-push: push to main — waiting for MDBT50QBOOT (CI may still be building)" >&2
+    exec "$flash" --latest
+) &
+
+exit 0
