@@ -212,6 +212,9 @@ def key_from_binding(token):
         d.update(hold=holdlbl, main=taplbl, cat="sym")
     elif prefix == "df11":         # hold mouse btn / tap mouse btn — derive both
         d.update(hold=mouse_label(args[0]), main=mouse_label(args[1]), cat="mouse")
+    elif prefix == "mmv":
+        arrow = {"MOVE_LEFT": "←", "MOVE_RIGHT": "→", "MOVE_UP": "↑", "MOVE_DOWN": "↓"}.get(args[0], args[0] if args else "")
+        d.update(main=arrow, sub="mouse", cat="mouse")
     elif prefix in ("td_left", "td_right", "td_up", "td_down"):
         arrow = {"td_left": "←", "td_right": "→", "td_up": "↑", "td_down": "↓"}[prefix]
         d.update(main=arrow, sub="mouse", cat="mouse")

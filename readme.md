@@ -33,6 +33,29 @@ the live geometry-adjustment panel, as the published build does.)
 - Modify the `board` and `shield` values in `build.yaml` to match the ZMK build
   target based on your hardware (see [Board/Shield](#boardshield)).
 
+# Flashing the dongle
+
+After a push to `main`, GitHub Actions builds central firmware and publishes it
+to the rolling [**latest** release](https://github.com/blehrer/ergodox-zmk-config/releases/tag/latest).
+
+`tools/flash-dongle.sh` waits for the dongle bootloader volume and copies the
+`.uf2` onto it:
+
+```sh
+# Download the latest build, wait for MDBT50QBOOT, flash
+./tools/flash-dongle.sh --latest
+
+# Or flash a file you already have
+./tools/flash-dongle.sh path/to/firmware.uf2
+```
+
+Put the **USB dongle** in bootloader mode first (double-tap its reset button
+while plugged in). On macOS the volume mounts as **`MDBT50QBOOT`**. The script
+uses `cp -X` so macOS extended-attribute errors do not block the copy.
+
+Options: `--volume NAME`, `--timeout SEC`, `--no-wait` (fail if not mounted).
+Downloaded firmware is cached under `.firmware-cache/` (gitignored).
+
 # Customization
 
 - To modify your keymap, edit `config/slicemk_ergodox.keymap`.

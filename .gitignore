@@ -1,3 +1,4 @@
+.firmware-cache/
 
 # Python
 __pycache__/
