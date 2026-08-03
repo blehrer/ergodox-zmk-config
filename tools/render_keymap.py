@@ -294,21 +294,54 @@ def parse_layers(text):
     return layers
 
 
+def _centrality(pos):
+    """How close a key position sits to the board's centre. Higher = more inner
+    (index-finger side); lower = more outer (pinky side). Symmetric across hands
+    so LHS and RHS combos can be ordered on the same inner→outer axis."""
+    p = int(pos)
+    if p in OUTER_L:
+        return OUTER_L[p][0]          # left: col 6 is the innermost column
+    if p in OUTER_R:
+        return 7 - OUTER_R[p][0]      # right: col 1 is the innermost column
+    return 0
+
+
+def _inner_first(combo):
+    """Sort key that orders a combo by its innermost finger first."""
+    return sorted((_centrality(p) for p in combo["positions"]), reverse=True)
+
+
+def _sort_inner_out(combos):
+    return sorted(combos, key=_inner_first, reverse=True)
+
+
 def parse_combos(text):
+    """Return the combos sorted into four semantic buckets:
+
+        {"lhs": [...], "rhs": [...],          # unpaired single-hand chords
+         "isos": [(lhs, rhs), ...],           # mirror-image LHS/RHS pairs
+         "twohand": [...]}                    # cross-hand chords
+
+    Each combo is {"text", "positions", "timeout"}. Single-hand entries are
+    ordered inner→outer; the isomorphic pairs are ordered by their left side.
+    """
     m = re.search(r"combos\s*\{(.*?)\n    \};", text, re.S)
     block = m.group(1) if m else ""
-    groups = []
-    cur = None
+    section = None                    # 'lhs' | 'rhs' | 'iso' (from --- headers)
     pending_desc = None
+    lhs, rhs, iso_flat, twohand = [], [], [], []
     for raw in block.splitlines():
         line = raw.strip()
         hdr = re.match(r"/\*\s*(?:---\s*)?(.*?)\s*(?:---\s*)?\*/$", line)
-        # section / group headers (single-line comments that are not the ➔ desc)
+        # section headers (single-line comments that are not the ➔ desc)
         if hdr and "➔" not in line and "key-positions" not in raw:
-            title = hdr.group(1).strip()
-            if title:
-                cur = {"title": title, "combos": []}
-                groups.append(cur)
+            title = hdr.group(1).lower()
+            if "isomorphic" in title:
+                section = "iso"
+            elif "left" in title and "unpaired" in title:
+                section = "lhs"
+            elif "right" in title and "unpaired" in title:
+                section = "rhs"
             continue
         if "➔" in line:
             pending_desc = line.lstrip("*/ ").strip()
@@ -321,17 +354,32 @@ def parse_combos(text):
             mt = re.match(r"(LHS|RHS)\s+(.*)$", pending_desc)
             if mt:
                 tag, body = mt.group(1), mt.group(2)
-            if cur is None:
-                cur = {"title": "", "combos": []}
-                groups.append(cur)
-            cur["combos"].append({
-                "tag": tag, "text": body.strip(),
-                "positions": cm.group(2).split(),
-                "timeout": cm.group(4),
-            })
+            combo = {"tag": tag, "text": body.strip(),
+                     "positions": cm.group(2).split(), "timeout": cm.group(4)}
+            # cross-hand chords carry no LHS/RHS tag even though they trail the
+            # isomorphic section in the source, so route them by tag, not section.
+            if section == "iso" and tag:
+                iso_flat.append(combo)
+            elif section == "lhs" or tag == "LHS":
+                lhs.append(combo)
+            elif section == "rhs" or tag == "RHS":
+                rhs.append(combo)
+            else:
+                twohand.append(combo)
             pending_desc = None
-    # drop empty groups
-    return [g for g in groups if g["combos"]]
+
+    # fold the flat LHS,RHS,LHS,RHS,... stream into (lhs, rhs) pairs
+    isos, pend = [], None
+    for c in iso_flat:
+        if c["tag"] == "LHS":
+            pend = c
+        elif c["tag"] == "RHS" and pend is not None:
+            isos.append((pend, c))
+            pend = None
+    isos.sort(key=lambda pr: _inner_first(pr[0]), reverse=True)
+
+    return {"lhs": _sort_inner_out(lhs), "rhs": _sort_inner_out(rhs),
+            "isos": isos, "twohand": twohand}
 
 
 # ---------------------------------------------------------------------------
@@ -469,28 +517,72 @@ def render_layer(layer):
   </section>'''
 
 
-def render_combos(groups):
+def _keys_html(c):
+    """The keycaps of a chord, joined with + separators."""
+    keys = c["text"].partition("➔")[0]
+    return '<span class="plus">+</span>'.join(
+        kc(k) for k in keys.strip().split("+"))
+
+
+def _combo_line(c):
+    """One chord on its own line: keys ➔ effect, timeout right-aligned."""
+    effect = c["text"].partition("➔")[2].strip()
+    # the effect fills the flexible column; a keycap stays natural-width at the
+    # left of it, while plain text wraps within it (never stretching or clipping)
+    inner = kc(effect) if effect and " " not in effect else esc(effect)
+    tcls = "" if effect and " " not in effect else " is-text"
+    fx = f'<span class="combo-fx{tcls}">{inner}</span>'
+    return (f'<div class="combo"><span class="chip-keys">{_keys_html(c)}</span>'
+            f'<span class="chip-arrow">➔</span>{fx}'
+            f'<span class="chip-ms">{c["timeout"]}ms</span></div>')
+
+
+def _combo_card(head, combos, head_cls=""):
+    """A framed card: an optional LHS/RHS landmark over one or more chord lines."""
+    h = (f'<div class="combo-card-head {head_cls}">{esc(head)}</div>'
+         if head else "")
+    lines = "".join(_combo_line(c) for c in combos)
+    return f'<div class="combo-card">{h}<div class="combo-lines">{lines}</div></div>'
+
+
+def render_combos(data):
     out = ['<section class="combos" id="combos"><div class="sec-head">'
            '<span class="eyebrow">chords</span><h2>Combos</h2></div>'
            '<p class="lead">Press these keys together to fire a single action. '
            'Same-hand chords use a 50&#8202;ms window; cross-hand chords 65&#8202;ms.</p>']
-    for g in groups:
-        out.append(f'<h3 class="combo-group">{esc(g["title"])}</h3>')
-        out.append('<div class="chip-row">')
-        for c in g["combos"]:
-            tag = (f'<span class="chip-tag t-{c["tag"].lower()}">{c["tag"]}</span>'
-                   if c["tag"] else "")
-            keys, _, effect = c["text"].partition("➔")
-            keycaps = '<span class="plus">+</span>'.join(
-                kc(k) for k in keys.strip().split("+"))
-            effect = effect.strip()
-            fx = kc(effect) if effect and " " not in effect else \
-                f'<span class="chip-fx">{esc(effect)}</span>'
-            out.append(
-                f'<div class="chip">{tag}<span class="chip-keys">{keycaps}</span>'
-                f'<span class="chip-arrow">➔</span>{fx}'
-                f'<span class="chip-ms">{c["timeout"]}ms</span></div>')
-        out.append('</div>')
+
+    # Single-hand, unpaired — LHS and RHS are an ordered pair of cards that sit
+    # side by side when there's room; each lists its chords inner→outer.
+    if data["lhs"] or data["rhs"]:
+        out.append('<div class="combo-block">'
+                   '<h3 class="combo-group">Single-hand · unpaired</h3>'
+                   '<div class="pair-grid">')
+        out.append(_combo_card("LHS", data["lhs"], "h-lhs"))
+        out.append(_combo_card("RHS", data["rhs"], "h-rhs"))
+        out.append('</div></div>')
+
+    # Isomorphisms — mirror-image pairs. Each pair is a two-card grid (its own
+    # LHS + RHS side); the collection of pairs is itself a 1–2-wide grid.
+    if data["isos"]:
+        out.append('<div class="combo-block">'
+                   '<h3 class="combo-group">Isomorphisms · mirrored pairs</h3>'
+                   '<div class="iso-grid">')
+        for left, right in data["isos"]:
+            out.append('<div class="iso-pair"><div class="iso-sides">')
+            out.append(_combo_card("LHS", [left], "h-lhs"))
+            out.append(_combo_card("RHS", [right], "h-rhs"))
+            out.append('</div></div>')
+        out.append('</div></div>')
+
+    # Two-handed — each cross-hand chord is its own unit in a 1–2-wide grid.
+    if data["twohand"]:
+        out.append('<div class="combo-block">'
+                   '<h3 class="combo-group">Two-handed</h3>'
+                   '<div class="unit-grid">')
+        for c in data["twohand"]:
+            out.append(_combo_card("", [c]))
+        out.append('</div></div>')
+
     out.append('</section>')
     return "".join(out)
 
@@ -536,7 +628,8 @@ def build(keymap_text, meta):
         f'<a href="#layer-{l["idx"]}" data-target="layer-{l["idx"]}">'
         f'{LAYER_SHORT[l["idx"]]}<span>{l["idx"]}</span></a>' for l in layers)
     layers_html = "".join(render_layer(l) for l in layers)
-    ncombos = sum(len(g["combos"]) for g in combos)
+    ncombos = (len(combos["lhs"]) + len(combos["rhs"])
+               + 2 * len(combos["isos"]) + len(combos["twohand"]))
     src = esc(meta["source"])
     commit = esc(meta["commit"])
     repo = esc(meta["repo_url"])

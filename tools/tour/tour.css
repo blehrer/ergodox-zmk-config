@@ -204,15 +204,51 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
 
 /* combos */
 .lead{color:var(--ink-dim);max-width:64ch;margin:0 0 20px}
+/* the section is a query container so every grid below reacts to its OWN width */
+.combos{container-type:inline-size;container-name:combos}
+.combo-block{margin:0 0 6px}
 .combo-group{font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;
-  color:var(--ink-faint);text-transform:uppercase;margin:20px 0 10px;font-weight:600}
-.chip-row{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:flex;align-items:center;gap:9px;background:var(--panel);
-  border:1px solid var(--hair);border-radius:10px;padding:8px 11px;font-size:13px}
-.chip-tag{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 5px;
-  border-radius:5px;letter-spacing:.05em}
-.t-lhs{background:color-mix(in srgb,var(--teal) 20%,transparent);color:var(--teal)}
-.t-rhs{background:color-mix(in srgb,var(--blue) 20%,transparent);color:var(--blue)}
+  color:var(--ink-faint);text-transform:uppercase;margin:24px 0 12px;font-weight:600}
+
+/* Every group is a grid that opens from one column to two when there's room.
+   Container queries let each level answer to its own box: an isomorphic pair
+   splits into LHS|RHS only when the pair itself is wide enough, independent of
+   how many pair-groups share the row. */
+.pair-grid,.unit-grid,.iso-grid,.iso-sides{display:grid;gap:12px}
+/* minmax(0,1fr) keeps the two columns exactly equal and lets their contents
+   wrap instead of forcing the track wider than its half */
+@container combos (min-width:540px){
+  .pair-grid,.unit-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@container combos (min-width:760px){
+  .iso-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+.iso-pair{container-type:inline-size}
+@container (min-width:300px){
+  .iso-sides{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+
+/* a card frames one or more chord lines under an optional LHS/RHS landmark */
+.combo-card{background:var(--panel);border:1px solid var(--hair);border-radius:12px;
+  padding:2px 14px 6px}
+.combo-card-head{font-family:var(--font-mono);font-size:10px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);
+  padding:9px 0 7px;border-bottom:1px solid var(--hair)}
+.combo-card-head.h-lhs{color:var(--teal)}
+.combo-card-head.h-rhs{color:var(--blue)}
+
+/* one chord per line, hairline rules between lines. The row is a wrapping flex:
+   the keycaps stay together flush left, and when a card is too tight the effect
+   (and timeout) drop onto the next line instead of clipping the keycaps. */
+.combo-lines{display:flex;flex-direction:column}
+.combo{display:flex;flex-wrap:wrap;align-items:center;column-gap:9px;row-gap:3px;
+  font-size:13px;padding:7px 0;border-top:1px solid var(--hair)}
+.combo-lines>.combo:first-child{border-top:0}
+.combo .chip-ms{margin-left:auto}
+/* a keycap effect keeps its natural width; plain text may wrap and break a long
+   word rather than push past the card edge */
+.combo-fx{min-width:0}
+.combo-fx.is-text{color:var(--ink-dim);overflow-wrap:break-word}
 .chip-keys{display:inline-flex;align-items:center;gap:3px}
 .kc{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink);
   background:linear-gradient(var(--cap),color-mix(in srgb,var(--cap) 90%,#000));
@@ -222,7 +258,6 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
 .kc.wide{padding:0 9px}
 .plus{color:var(--ink-faint);font-weight:600;font-family:var(--font-mono);margin:0 1px}
 .chip-arrow{color:var(--accent);font-weight:700}
-.chip-fx{color:var(--ink-dim)}
 .chip-ms{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);
   margin-left:2px;border-left:1px solid var(--hair);padding-left:8px}
 
