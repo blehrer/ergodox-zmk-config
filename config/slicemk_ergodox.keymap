@@ -282,6 +282,21 @@
          * e+f+j ➔ types "=> "
          */
         c_fatarrow  { key-positions = <18 33 36>;    bindings = <&st_macro_1>;     timeout-ms = <65>; };
+
+        /*
+         * f+; ➔ :
+         */
+        c_colon     { key-positions = <33 39>;       bindings = <&kp COLON>;       timeout-ms = <65>; };
+
+        /*
+         * f+/ ➔ ?
+         */
+        c_qmark     { key-positions = <33 52>;       bindings = <&kp QMARK>;       timeout-ms = <65>; };
+
+        /*
+         * f+- ➔ _
+         */
+        c_under     { key-positions = <33 60>;       bindings = <&kp UNDER>;       timeout-ms = <65>; };
     };
 
     keymap {
