@@ -76,6 +76,9 @@ class RenderTelemetryTest(unittest.TestCase):
         self.assertIn("behavior === 'mo'", self.page)
         self.assertIn("behavior === 'lm'", self.page)
 
+    def test_clear_returns_to_base_layer(self):
+        self.assertIn("location.hash = 'layer-0';", self.page)
+
 
 if __name__ == "__main__":
     unittest.main()

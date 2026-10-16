@@ -185,6 +185,7 @@
     }
     updateBuffers();
     closeMenu();
+    location.hash = 'layer-0';
   }
 
   document.addEventListener('click', (event) => {
