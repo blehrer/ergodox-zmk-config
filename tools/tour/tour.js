@@ -49,14 +49,18 @@
 (function keypressTelemetry() {
   const STORAGE_KEY = 'ergodox-keymap-tour-events-v1';
   const keys = [...document.querySelectorAll('button.key[data-position]')];
-  const buffers = [...document.querySelectorAll('.keypress-value')];
+  const sequenceLines = [...document.querySelectorAll('.keypress-sequence')];
+  const resultLines = [...document.querySelectorAll('.keypress-results')];
   const menu = document.getElementById('gesture-menu');
   let selectedKey = null;
 
   function loadEvents() {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      return Array.isArray(stored) ? stored : [];
+      if (!Array.isArray(stored)) return [];
+      return stored.map((entry) => (
+        entry.gesture === 'single' ? { ...entry, gesture: 'press' } : entry
+      ));
     } catch {
       return [];
     }
@@ -72,19 +76,34 @@
     }
   }
 
-  function eventLabel(entry) {
-    let value = entry.tap || entry.binding;
-    if (entry.gesture === 'double') value += ' ×2';
-    if (entry.gesture === 'hold') value = entry.hold || value;
-    if (entry.gesture === 'tap-hold') {
-      value = `${value} → ${entry.hold || value}`;
-    }
-    return `${entry.layerName} · L${entry.position} · ${entry.gesture} · ${value}`;
+  function sequenceToken(entry) {
+    return `${entry.position}·${entry.gesture}`;
   }
 
-  function updateBuffers(entry) {
-    const value = entry ? eventLabel(entry) : 'No keys recorded';
-    buffers.forEach((buffer) => { buffer.textContent = value; });
+  function resultToken(entry) {
+    const tap = entry.tap || entry.binding;
+    if (entry.gesture === 'double') return `${tap}${tap}`;
+    if (entry.gesture === 'hold') {
+      if (entry.behavior === 'lm' && entry.hold) return `${tap}+${entry.hold}`;
+      return entry.hold || tap;
+    }
+    if (entry.gesture === 'tap-hold') return `${tap}→${entry.hold || tap}`;
+    return tap;
+  }
+
+  function updateBuffers() {
+    const sequence = events.length
+      ? events.map(sequenceToken).join(' ')
+      : 'No keys recorded';
+    const results = events.map(resultToken).join(' ');
+    sequenceLines.forEach((line) => {
+      line.textContent = sequence;
+      line.scrollLeft = line.scrollWidth;
+    });
+    resultLines.forEach((line) => {
+      line.textContent = results;
+      line.scrollLeft = line.scrollWidth;
+    });
   }
 
   function closeMenu(restoreFocus = false) {
@@ -139,7 +158,7 @@
 
     events.push(entry);
     saveEvents();
-    updateBuffers(entry);
+    updateBuffers();
     closeMenu();
 
     if (targetMatches) location.hash = `layer-${entry.targetLayer}`;
@@ -164,7 +183,7 @@
     } catch {
       // The in-memory history and visible buffers are still cleared.
     }
-    updateBuffers(null);
+    updateBuffers();
     closeMenu();
   }
 
@@ -178,7 +197,11 @@
     const key = event.target.closest('button.key[data-position]');
     if (key) {
       if (key.dataset.dual === 'true') openMenu(key);
-      else record(key, 'single');
+      else {
+        const behavior = key.dataset.behavior;
+        const gesture = behavior === 'mo' || behavior === 'lm' ? 'hold' : 'press';
+        record(key, gesture);
+      }
       return;
     }
 
@@ -202,5 +225,5 @@
 
   window.addEventListener('resize', () => closeMenu(), { passive: true });
   window.addEventListener('scroll', () => closeMenu(), { passive: true });
-  updateBuffers(events.at(-1));
+  updateBuffers();
 })();

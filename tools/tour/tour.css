@@ -124,12 +124,17 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
   position:relative}
 :root{--u:52px}
 .keypress-buffer{position:absolute;z-index:2;top:24px;left:50%;
-  transform:translateX(-50%);width:calc(var(--board-gap) - 24px);height:29px;
-  display:flex;align-items:center;gap:5px;padding:3px 5px 3px 9px;
-  border:1px solid var(--hair);border-radius:999px;background:var(--panel);
+  transform:translateX(-50%);width:calc(var(--board-gap) - 24px);height:47px;
+  display:flex;flex-direction:column;padding:3px 5px 3px 9px;
+  border:1px solid var(--hair);border-radius:10px;background:var(--panel);
   color:var(--ink-faint);font:10px/1 var(--font-mono);box-shadow:var(--shadow)}
-.keypress-value{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap}
+.keypress-buffer-row{display:flex;align-items:center;gap:5px;min-width:0;height:21px}
+.keypress-sequence,.keypress-results{min-width:0;overflow-x:auto;white-space:nowrap;
+  scrollbar-width:none}
+.keypress-sequence::-webkit-scrollbar,.keypress-results::-webkit-scrollbar{display:none}
+.keypress-sequence{flex:1}
+.keypress-results{width:100%;height:19px;padding-top:5px;border-top:1px solid var(--hair);
+  color:var(--ink-dim)}
 .keypress-buffer button,.gesture-menu button{border:0;background:transparent;
   color:var(--ink-dim);font:inherit;cursor:pointer}
 .keypress-buffer button{padding:3px 5px;border-left:1px solid var(--hair)}

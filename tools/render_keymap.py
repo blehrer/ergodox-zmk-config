@@ -203,13 +203,13 @@ def key_from_binding(token):
         d.update(main=lbl, sub="sticky", cat="mod")
     elif prefix == "sl":
         d.update(main=layer_label(args[0]), sub="→layer", cat="layer",
-                 target_layer=layer_index(args[0]), target_gesture="single")
+                 target_layer=layer_index(args[0]), target_gesture="press")
     elif prefix == "mo":
         d.update(main=layer_label(args[0]), sub="hold", cat="layer",
                  target_layer=layer_index(args[0]), target_gesture="hold")
     elif prefix == "to":
         d.update(main=layer_label(args[0]), sub="switch", cat="layer",
-                 target_layer=layer_index(args[0]), target_gesture="single")
+                 target_layer=layer_index(args[0]), target_gesture="press")
     elif prefix in ("mt", "tmt"):   # mod-tap (tmt = tap-preferred thumb variant)
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
@@ -509,9 +509,12 @@ def render_board(binds, layer_short, layer_idx, highlight=None):
     right = render_half(binds, "right", layer_short, layer_idx, highlight)
     tracker = (
         '<div class="keypress-buffer" aria-live="polite">'
-        '<span class="keypress-value">No keys recorded</span>'
+        '<div class="keypress-buffer-row">'
+        '<span class="keypress-sequence">No keys recorded</span>'
         '<button type="button" class="keypress-export">Export</button>'
         '<button type="button" class="keypress-clear">Clear</button>'
+        '</div>'
+        '<div class="keypress-results" aria-label="Resolved result"></div>'
         '</div>'
     )
     return (f'<div class="board-scroll"><div class="board">'
