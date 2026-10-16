@@ -120,8 +120,20 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
 .board{display:flex;align-items:flex-start;gap:var(--board-gap);
   width:fit-content;margin-inline:auto;
   background:var(--board);border:1px solid var(--board-edge);
-  border-radius:16px;padding:24px 30px 30px;box-shadow:var(--shadow)}
+  border-radius:16px;padding:24px 30px 30px;box-shadow:var(--shadow);
+  position:relative}
 :root{--u:52px}
+.keypress-buffer{position:absolute;z-index:2;top:24px;left:50%;
+  transform:translateX(-50%);width:calc(var(--board-gap) - 24px);height:29px;
+  display:flex;align-items:center;gap:5px;padding:3px 5px 3px 9px;
+  border:1px solid var(--hair);border-radius:999px;background:var(--panel);
+  color:var(--ink-faint);font:10px/1 var(--font-mono);box-shadow:var(--shadow)}
+.keypress-value{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.keypress-buffer button,.gesture-menu button{border:0;background:transparent;
+  color:var(--ink-dim);font:inherit;cursor:pointer}
+.keypress-buffer button{padding:3px 5px;border-left:1px solid var(--hair)}
+.keypress-buffer button:hover,.gesture-menu button:hover{color:var(--accent)}
 
 /* each half wraps a heading landmark + the key cluster. The heading only shows
    once the halves stack (narrow screens); side-by-side it's hidden. */
@@ -142,6 +154,8 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
   .board{--cw:562px; --ch:430px;
     flex-direction:column;align-items:center;gap:22px;
     background:transparent;border:none;box-shadow:none;padding:4px 0}
+  .keypress-buffer{position:static;order:-1;transform:none;
+    width:min(calc(100vw - 32px),var(--cw));flex:none}
   .board-scroll{padding:12px 8px 6px;overflow-x:auto}
   .half{width:fit-content;max-width:100%;
     background:var(--board);border:1px solid var(--board-edge);
@@ -182,7 +196,10 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
   background:linear-gradient(var(--cap),color-mix(in srgb,var(--cap) 92%,#000));
   border:1px solid var(--cap-line);box-shadow:var(--shadow);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1px;padding:3px;position:relative;overflow:hidden;cursor:default}
+  gap:1px;padding:3px;position:relative;overflow:hidden;cursor:pointer;
+  color:inherit;font:inherit;appearance:none}
+.key:focus-visible,.keypress-buffer button:focus-visible,
+.gesture-menu button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .key.big .k-main{font-size:15px}
 .key::before{content:"";position:absolute;inset:0 0 auto 0;height:42%;
   background:linear-gradient(#ffffff10,transparent);pointer-events:none}
@@ -207,6 +224,14 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
   box-shadow:none}
 .key.ghost::before{display:none}
 .key.ghost .k-main{color:var(--ink-faint);font-size:12px;font-weight:400}
+
+/* one shared action menu is positioned beside the selected dual-function key */
+[hidden]{display:none!important}
+.gesture-menu{position:fixed;z-index:100;display:flex;flex-direction:column;
+  min-width:88px;padding:4px;background:var(--panel);border:1px solid var(--hair);
+  border-radius:10px;box-shadow:0 10px 30px #0008;font:11px/1 var(--font-mono)}
+.gesture-menu button{text-align:left;padding:7px 9px;border-radius:6px}
+.gesture-menu button:hover{background:var(--cap)}
 
 /* combos */
 .lead{color:var(--ink-dim);max-width:64ch;margin:0 0 20px}

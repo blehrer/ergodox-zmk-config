@@ -80,6 +80,7 @@ LAYER_NODES = {
 }
 LAYER_SHORT = {0: "BASE", 1: "SYMB", 2: "NAVI", 3: "NAV3"}
 LAYER_BY_NAME = {"BASE": "BASE", "SYMB": "SYMB", "NAVI": "NAVI", "NAV3": "NAV3"}
+LAYER_INDEX_BY_NAME = {name: idx for idx, name in LAYER_SHORT.items()}
 
 
 def layer_label(arg):
@@ -90,6 +91,17 @@ def layer_label(arg):
         return LAYER_SHORT.get(int(arg), arg)
     except ValueError:
         return arg
+
+
+def layer_index(arg):
+    """Resolve a layer reference to the numeric index used by page anchors."""
+    label = layer_label(arg)
+    if label in LAYER_INDEX_BY_NAME:
+        return str(LAYER_INDEX_BY_NAME[label])
+    try:
+        return str(int(arg))
+    except ValueError:
+        return ""
 
 # ---------------------------------------------------------------------------
 # Keycode -> printable label
@@ -176,7 +188,12 @@ def key_from_binding(token):
     parts = token.split()
     prefix = parts[0]
     args = parts[1:]
-    d = {"main": "", "hold": "", "sub": "", "cat": "sym", "raw": "&" + token}
+    d = {
+        "main": "", "hold": "", "sub": "", "cat": "sym", "raw": "&" + token,
+        "behavior": prefix,
+        "dual": prefix in {"mt", "tmt", "df0", "df1", "dfk", "df11"},
+        "target_layer": "", "target_gesture": "",
+    }
 
     if prefix == "kp":
         lbl, cat = resolve_code(" ".join(args))
@@ -185,11 +202,14 @@ def key_from_binding(token):
         lbl, _ = resolve_code(" ".join(args))
         d.update(main=lbl, sub="sticky", cat="mod")
     elif prefix == "sl":
-        d.update(main=layer_label(args[0]), sub="→layer", cat="layer")
+        d.update(main=layer_label(args[0]), sub="→layer", cat="layer",
+                 target_layer=layer_index(args[0]), target_gesture="single")
     elif prefix == "mo":
-        d.update(main=layer_label(args[0]), sub="hold", cat="layer")
+        d.update(main=layer_label(args[0]), sub="hold", cat="layer",
+                 target_layer=layer_index(args[0]), target_gesture="hold")
     elif prefix == "to":
-        d.update(main=layer_label(args[0]), sub="switch", cat="layer")
+        d.update(main=layer_label(args[0]), sub="switch", cat="layer",
+                 target_layer=layer_index(args[0]), target_gesture="single")
     elif prefix in ("mt", "tmt"):   # mod-tap (tmt = tap-preferred thumb variant)
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
@@ -197,7 +217,8 @@ def key_from_binding(token):
     elif prefix == "lm":
         lay = layer_label(args[0])
         modlbl, _ = resolve_code(" ".join(args[1:]))
-        d.update(hold=modlbl, main=lay, sub="hold", cat="layer")
+        d.update(hold=modlbl, main=lay, sub="hold", cat="layer",
+                 target_layer=layer_index(args[0]), target_gesture="hold")
     elif prefix == "df0":          # hold modifier / tap key
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
@@ -205,7 +226,8 @@ def key_from_binding(token):
     elif prefix == "df1":          # hold layer / tap key
         lay = layer_label(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
-        d.update(hold=lay, main=taplbl, cat="layer")
+        d.update(hold=lay, main=taplbl, cat="layer",
+                 target_layer=layer_index(args[0]), target_gesture="hold")
     elif prefix == "dfk":          # hold key / tap key
         holdlbl, _ = resolve_code(args[0])
         taplbl, _ = resolve_code(" ".join(args[1:]))
@@ -399,7 +421,7 @@ def kc(label):
     return f'<span class="{cls}">{esc(label) or "&nbsp;"}</span>'
 
 
-def render_key(token, style="", extra=""):
+def render_key(token, position, side, layer_short, layer_idx, style="", extra=""):
     if token is None:
         return ""
     d = key_from_binding(token)
@@ -413,8 +435,19 @@ def render_key(token, style="", extra=""):
     main = esc(d["main"]) or "&nbsp;"
     meaning = describe(d)
     title = esc(d["raw"] + ("  —  " + meaning if meaning else ""))
-    return (f'<div class="{" ".join(cls)}" style="{style}" title="{title}">'
-            f'{hold}<span class="k-main">{main}</span>{sub}</div>')
+    aria = esc(f'{layer_short} layer, {side} position {position}, {d["raw"]}')
+    attrs = (
+        f'data-layer="{layer_idx}" data-layer-name="{esc(layer_short)}" '
+        f'data-position="{position}" data-side="{esc(side)}" '
+        f'data-binding="{esc(d["raw"])}" data-behavior="{esc(d["behavior"])}" '
+        f'data-dual="{"true" if d["dual"] else "false"}" '
+        f'data-tap="{esc(d["main"])}" data-hold="{esc(d["hold"])}" '
+        f'data-target-layer="{esc(d["target_layer"])}" '
+        f'data-target-gesture="{esc(d["target_gesture"])}"'
+    )
+    return (f'<button type="button" class="{" ".join(cls)}" style="{style}" '
+            f'title="{title}" aria-label="{aria}" {attrs}>'
+            f'{hold}<span class="k-main">{main}</span>{sub}</button>')
 
 
 def describe(d):
@@ -429,7 +462,7 @@ def describe(d):
     return " / ".join(bits)
 
 
-def render_half(binds, side, layer_short, highlight=None):
+def render_half(binds, side, layer_short, layer_idx, highlight=None):
     outer = OUTER_L if side == "left" else OUTER_R
     off = OFF_L6 if side == "left" else OFF_R6
     inner = INNER_L if side == "left" else INNER_R
@@ -442,19 +475,23 @@ def render_half(binds, side, layer_short, highlight=None):
 
     # grid 1: outer 6 columns (with per-column stagger)
     cells = [f'<div class="cell" style="grid-column:{c};grid-row:{r}">'
-             + render_key(binds.get(p), f"transform:translateY({off[c]}px)", extra(p))
+             + render_key(binds.get(p), p, side, layer_short, layer_idx,
+                          f"transform:translateY({off[c]}px)", extra(p))
              + "</div>" for p, (c, r) in outer.items()]
     g_main = f'<div class="g-main">{"".join(cells)}</div>'
 
     # grid 2: inner column (absolute keys, edges aligned to the alpha column)
-    ikeys = [render_key(binds.get(p), f"top:{top}px;height:{h}px",
-                        extra(p, "tall" if h > U else "")) for p, top, h in inner]
+    ikeys = [render_key(binds.get(p), p, side, layer_short, layer_idx,
+                        f"top:{top}px;height:{h}px",
+                        extra(p, "tall" if h > U else ""))
+             for p, top, h in inner]
     g_inner = f'<div class="g-inner">{"".join(ikeys)}</div>'
 
     # grid 3: thumb cluster (its own grid, positioned + rotated via CSS)
     tcells = [f'<div class="cell" style="grid-column:{c} / span {cs};'
               f'grid-row:{r} / span {rs}">'
-              + render_key(binds.get(p), "", extra(p, "big" if rs > 1 else "")) + "</div>"
+              + render_key(binds.get(p), p, side, layer_short, layer_idx, "",
+                           extra(p, "big" if rs > 1 else "")) + "</div>"
               for p, (c, r, cs, rs) in thumb.items()]
     g_thumb = f'<div class="g-thumb">{"".join(tcells)}</div>'
 
@@ -467,11 +504,18 @@ def render_half(binds, side, layer_short, highlight=None):
     return f'<div class="half {side}">{head}{stage}</div>'
 
 
-def render_board(binds, layer_short, highlight=None):
-    left = render_half(binds, "left", layer_short, highlight)
-    right = render_half(binds, "right", layer_short, highlight)
+def render_board(binds, layer_short, layer_idx, highlight=None):
+    left = render_half(binds, "left", layer_short, layer_idx, highlight)
+    right = render_half(binds, "right", layer_short, layer_idx, highlight)
+    tracker = (
+        '<div class="keypress-buffer" aria-live="polite">'
+        '<span class="keypress-value">No keys recorded</span>'
+        '<button type="button" class="keypress-export">Export</button>'
+        '<button type="button" class="keypress-clear">Clear</button>'
+        '</div>'
+    )
     return (f'<div class="board-scroll"><div class="board">'
-            f'{left}{right}</div></div>')
+            f'{left}{tracker}{right}</div></div>')
 
 
 def render_notes(full):
@@ -513,7 +557,7 @@ def render_layer(layer):
       <h2>{LAYER_SHORT[idx]}</h2>
       <span class="summary">{esc(summary)}</span>
     </div>
-    {render_board(layer["binds"], LAYER_SHORT[idx])}
+    {render_board(layer["binds"], LAYER_SHORT[idx], idx)}
     <details class="notes"><summary>Layer notes · straight from the keymap comments</summary>
       <div class="desc">{render_notes(full)}</div>
     </details>
@@ -687,10 +731,10 @@ def build_diff(before_text, after_text):
         body = (
             f'<section class="before"><div class="diff-title">● Before</div>'
             f'<div class="diff-sub">{esc(short)} layer</div>'
-            f'{render_board(lb["binds"], short, changed)}</section>'
+            f'{render_board(lb["binds"], short, lb["idx"], changed)}</section>'
             f'<section class="after"><div class="diff-title">● After</div>'
             f'<div class="diff-sub">{esc(short)} layer · positions {poslist}</div>'
-            f'{render_board(la["binds"], short, changed)}</section>')
+            f'{render_board(la["binds"], short, la["idx"], changed)}</section>')
         pages[short] = DIFF_HEAD.format(css=css) + body + PAGE_TAIL
     return pages
 

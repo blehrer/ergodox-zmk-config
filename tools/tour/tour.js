@@ -44,3 +44,163 @@
   window.addEventListener('resize', fit, { passive: true });
   if (stacked.addEventListener) stacked.addEventListener('change', fit);
 })();
+
+// Record intentional key gestures locally. No telemetry leaves the browser.
+(function keypressTelemetry() {
+  const STORAGE_KEY = 'ergodox-keymap-tour-events-v1';
+  const keys = [...document.querySelectorAll('button.key[data-position]')];
+  const buffers = [...document.querySelectorAll('.keypress-value')];
+  const menu = document.getElementById('gesture-menu');
+  let selectedKey = null;
+
+  function loadEvents() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  }
+
+  let events = loadEvents();
+
+  function saveEvents() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    } catch {
+      // The visible buffer still works when storage is unavailable or full.
+    }
+  }
+
+  function eventLabel(entry) {
+    let value = entry.tap || entry.binding;
+    if (entry.gesture === 'double') value += ' ×2';
+    if (entry.gesture === 'hold') value = entry.hold || value;
+    if (entry.gesture === 'tap-hold') {
+      value = `${value} → ${entry.hold || value}`;
+    }
+    return `${entry.layerName} · L${entry.position} · ${entry.gesture} · ${value}`;
+  }
+
+  function updateBuffers(entry) {
+    const value = entry ? eventLabel(entry) : 'No keys recorded';
+    buffers.forEach((buffer) => { buffer.textContent = value; });
+  }
+
+  function closeMenu(restoreFocus = false) {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    if (selectedKey) {
+      selectedKey.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) selectedKey.focus();
+    }
+    selectedKey = null;
+  }
+
+  function openMenu(key) {
+    closeMenu();
+    selectedKey = key;
+    key.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+
+    const rect = key.getBoundingClientRect();
+    const gap = 8;
+    let left = rect.right + gap;
+    if (left + menu.offsetWidth > window.innerWidth - gap) {
+      left = rect.left - menu.offsetWidth - gap;
+    }
+    const top = Math.min(
+      window.innerHeight - menu.offsetHeight - gap,
+      Math.max(gap, rect.top)
+    );
+    menu.style.left = `${Math.max(gap, left)}px`;
+    menu.style.top = `${top}px`;
+    menu.querySelector('button').focus();
+  }
+
+  function record(key, gesture) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      layer: Number(key.dataset.layer),
+      layerName: key.dataset.layerName,
+      position: Number(key.dataset.position),
+      side: key.dataset.side,
+      binding: key.dataset.binding,
+      behavior: key.dataset.behavior,
+      gesture,
+      tap: key.dataset.tap,
+      hold: key.dataset.hold,
+    };
+    const targetMatches = key.dataset.targetLayer && (
+      key.dataset.targetGesture === gesture ||
+      (key.dataset.targetGesture === 'hold' && gesture === 'tap-hold')
+    );
+    if (targetMatches) entry.targetLayer = Number(key.dataset.targetLayer);
+
+    events.push(entry);
+    saveEvents();
+    updateBuffers(entry);
+    closeMenu();
+
+    if (targetMatches) location.hash = `layer-${entry.targetLayer}`;
+  }
+
+  function exportEvents() {
+    const blob = new Blob([JSON.stringify(events, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ergodox-keymap-tour-events.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearEvents() {
+    events = [];
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // The in-memory history and visible buffers are still cleared.
+    }
+    updateBuffers(null);
+    closeMenu();
+  }
+
+  document.addEventListener('click', (event) => {
+    const action = event.target.closest('#gesture-menu [data-gesture]');
+    if (action && selectedKey) {
+      record(selectedKey, action.dataset.gesture);
+      return;
+    }
+
+    const key = event.target.closest('button.key[data-position]');
+    if (key) {
+      if (key.dataset.dual === 'true') openMenu(key);
+      else record(key, 'single');
+      return;
+    }
+
+    if (event.target.closest('.keypress-export')) {
+      exportEvents();
+      return;
+    }
+    if (event.target.closest('.keypress-clear')) {
+      clearEvents();
+      return;
+    }
+    if (!menu.hidden) closeMenu(true);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      event.preventDefault();
+      closeMenu(true);
+    }
+  });
+
+  window.addEventListener('resize', () => closeMenu(), { passive: true });
+  window.addEventListener('scroll', () => closeMenu(), { passive: true });
+  updateBuffers(events.at(-1));
+})();
