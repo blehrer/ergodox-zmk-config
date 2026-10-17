@@ -174,16 +174,16 @@
     if (targetMatches) location.hash = `layer-${entry.targetLayer}`;
   }
 
-  function buildPrompt(sequence, results) {
+  function buildPrompt(sequence, result) {
     return `Key sequence: ${sequence}
-Resolved tour result: ${results || '(none)'}
+Resolved tour result: ${result || '(none)'}
 
 If the apps in scope have not been recorded:
 - Ask: "Which programs should I have in scope for reconfiguring keybindings?"
 - For each supplied app, determine the folders and files used for its configuration.
 
 For each supplied app:
-- Look up what ${sequence} does in its configuration.
+- Look up what ${result} does in its configuration.
 - If it is unspecified and the app's defaults have not been cleared, determine its default behavior.
 - Report: ${sequence} does ... in \${app}.
 

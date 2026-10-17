@@ -79,6 +79,8 @@ class RenderTelemetryTest(unittest.TestCase):
         self.assertIn("navigator.clipboard.writeText", self.page)
         self.assertIn("Key sequence:", self.page)
         self.assertIn("Resolved tour result:", self.page)
+        self.assertIn("- Look up what ${result} does", self.page)
+        self.assertNotIn("- Look up what ${sequence} does", self.page)
         self.assertIn("entry.position", self.page)
         self.assertIn("entry.gesture", self.page)
         self.assertIn("entry.behavior === 'lm'", self.page)
