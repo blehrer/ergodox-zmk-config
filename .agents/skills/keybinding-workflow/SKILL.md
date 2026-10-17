@@ -18,10 +18,21 @@ python3 tools/render_keymap.py config/slicemk_ergodox.keymap --out tour.html
 
 ## Parse the prompt
 
-1. If **Layers:** is missing, stop and ask the user to paste a fresh tour prompt (all three blocks: Key sequence, Layers, Resolved tour result).
-2. Read **Key sequence:** and **Resolved tour result:** for the ZMK binding and layer path.
-3. Open `config/slicemk_ergodox.keymap`. For each layer in **Layers:**, read the named layer comment block (`/* BASE (0) — … */`, etc.).
-4. From each layer comment, collect **App bindings:** lines to learn which apps are in scope. If scope is unclear or spans apps ambiguously, ask before changing anything.
+1. Read **Key sequence:**, **Layers:**, and **Resolved tour result:** for the ZMK binding and layer path.
+2. Open `config/slicemk_ergodox.keymap`. For each layer in **Layers:**, read the named layer comment block (`/* BASE (0) — … */`, etc.).
+3. From each layer comment, collect **App bindings:** lines to learn which apps are in scope.
+
+## Stop and ask
+
+Do not edit files until the user answers when any of these apply:
+
+- **Layers:** is missing or `(none)` — the prompt does not identify a layer.
+- App scope cannot be inferred from **App bindings:** and the sequence (unclear or ambiguous across apps).
+- A default binding cannot be determined for an app that still relies on defaults.
+- A marker ID already identifies unrelated logic in dotfiles.
+- Conflict resolution requires choosing which existing behavior to replace.
+
+Report validation failures and leave unrelated files unchanged.
 
 ## Locate managed app config
 
@@ -54,22 +65,28 @@ Search existing markers before inventing a new slug.
 
 ### Layer notes
 
-In the same layer comment block, add or update **App bindings:** with the resolved chord, app, behavior, and an HTTPS code-search link:
+In the same layer comment block, add or update **App bindings:** with the resolved chord, app, behavior, and an HTTPS code-search link. Quote the entire search phrase so GitHub does not treat `keymap-ref:` as a search qualifier:
 
 ```text
-https://github.com/blehrer/dotfiles/search?q=<urlencoded-marker>&type=code
+https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+<slug>%22&type=code
 ```
 
-URL-encode the marker (e.g. `keymap-ref%3A+<slug>`). Use only `https://` links in notes and reports—never `http://` or repo-local file paths as workflow steps.
+Example:
+
+```text
+https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code
+```
+
+Use only `https://` links in notes and reports—never `http://` or repo-local file paths as workflow steps.
 
 ## Verify
 
-1. Apply managed configs (`chezmoi apply` or the app’s documented reload) for every app you changed.
-2. Run each affected app’s native validator if one exists (e.g. config lint, `defaults read` sanity check).
+1. Apply only the managed paths you changed: `chezmoi apply <target>` (for example the Zellij or Ghostty config path).
+2. Run each affected app’s native validator if one exists (e.g. `zellij setup --check`, Ghostty `+validate-config`).
 3. In this repository:
 
 ```sh
-python3 -m unittest tests/test_render_keymap.py
+python3 -m unittest discover -s tests
 ```
 
 4. Build a temporary tour without the panel:

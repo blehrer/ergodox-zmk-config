@@ -18,7 +18,8 @@ class RenderNoteTextTest(unittest.TestCase):
         out = render_keymap.render_note_text(text)
         self.assertIn('href="https://github.com/foo/bar?&amp;type=code"', out)
         self.assertIn('target="_blank"', out)
-        self.assertIn('rel="noopener"', out)
+        self.assertIn('class="source-link"', out)
+        self.assertIn('rel="noopener noreferrer"', out)
         self.assertIn(">code search</a>", out)
 
     def test_unsafe_link_and_script_stay_escaped(self):
@@ -115,9 +116,31 @@ class RenderTelemetryTest(unittest.TestCase):
         self.assertIn("App bindings:", self.page)
         self.assertIn("Meh + Page Up: Zellij previous mode.", self.page)
         self.assertIn("Meh + Page Down: Zellij next mode.", self.page)
-        self.assertIn("F5: Reload Ghostty config.", self.page)
-        self.assertIn("keymap-ref%3A+zellij-mode-cycle", self.page)
-        self.assertIn("keymap-ref%3A+ghostty-f5-reload", self.page)
+        self.assertIn("F5: Still sends F5 to the focused terminal", self.page)
+        self.assertIn("%22keymap-ref%3A+zellij-mode-cycle%22", self.page)
+        self.assertIn("%22keymap-ref%3A+ghostty-f5-reload%22", self.page)
+        self.assertIn('class="source-link"', self.page)
+        self.assertIn('rel="noopener noreferrer"', self.page)
+
+
+class KeymapAppNotesTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.keymap = (ROOT / "config" / "slicemk_ergodox.keymap").read_text()
+
+    def test_base_app_bindings_follow_physical_layout_and_caps_word(self):
+        base = self.keymap.split("base_layer {", 1)[0]
+        caps = base.rindex("extended_caps_word")
+        apps = base.rindex("App bindings:")
+        self.assertLess(caps, apps, "App bindings should follow caps-word note")
+
+    def test_symb_f5_note_states_terminal_still_receives_f5(self):
+        symb = self.keymap.split("symbol_layer {", 1)[0]
+        self.assertIn("F5:", symb)
+        self.assertRegex(
+            symb,
+            re.compile(r"F5:.*(still sends F5|still reaches).*terminal", re.I),
+        )
 
 
 if __name__ == "__main__":

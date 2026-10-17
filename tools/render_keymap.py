@@ -430,7 +430,8 @@ def render_note_text(text: str) -> str:
         label = _note_behavior_tokens(esc(m.group(1)))
         url = esc(m.group(2))
         parts.append(
-            f'<a href="{url}" target="_blank" rel="noopener">{label}</a>'
+            f'<a href="{url}" class="source-link" target="_blank" '
+            f'rel="noopener noreferrer">{label}</a>'
         )
         last = m.end()
     parts.append(_note_behavior_tokens(esc(text[last:])))
