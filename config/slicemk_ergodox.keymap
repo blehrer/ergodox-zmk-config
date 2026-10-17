@@ -300,6 +300,9 @@
              Big keys — left: hold GUI/tap Backspace, hold Ctrl/tap Delete;
                         right: hold Alt/tap Enter, hold GUI/tap Space.
              Inner column, top to bottom: Page Up, Page Down, Shift.
+           App bindings:
+             Meh + Page Up: Zellij previous mode. [source](https://github.com/blehrer/dotfiles/search?q=keymap-ref%3A+zellij-mode-cycle&type=code)
+             Meh + Page Down: Zellij next mode. [source](https://github.com/blehrer/dotfiles/search?q=keymap-ref%3A+zellij-mode-cycle&type=code)
            &extended_caps_word (bottom right): Caps Lock that ends at the next word. */
         base_layer {
             bindings = <
@@ -322,7 +325,9 @@
            Right hand: F6 through F11/F12 across the top; the home block is a
              number pad, where each &dfk Fn N key taps the number and holds the
              matching function key, with keypad + and * alongside.
-           Thumb inner column: Volume Up (top), Volume Down (below it). */
+           Thumb inner column: Volume Up (top), Volume Down (below it).
+           App bindings:
+             F5: Reload Ghostty config. Running Zellij sessions reload their config automatically. [source](https://github.com/blehrer/dotfiles/search?q=keymap-ref%3A+ghostty-f5-reload&type=code) */
         symbol_layer {
             bindings = <
 &bootloader

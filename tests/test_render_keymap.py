@@ -111,6 +111,14 @@ class RenderTelemetryTest(unittest.TestCase):
     def test_clear_returns_to_base_layer(self):
         self.assertIn("location.hash = 'layer-0';", self.page)
 
+    def test_page_includes_app_bindings_in_layer_notes(self):
+        self.assertIn("App bindings:", self.page)
+        self.assertIn("Meh + Page Up: Zellij previous mode.", self.page)
+        self.assertIn("Meh + Page Down: Zellij next mode.", self.page)
+        self.assertIn("F5: Reload Ghostty config.", self.page)
+        self.assertIn("keymap-ref%3A+zellij-mode-cycle", self.page)
+        self.assertIn("keymap-ref%3A+ghostty-f5-reload", self.page)
+
 
 if __name__ == "__main__":
     unittest.main()
