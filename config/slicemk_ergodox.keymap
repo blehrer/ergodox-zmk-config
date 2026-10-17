@@ -309,11 +309,12 @@
              Meh+G/H/N/O/P/S/T: Zellij mode entry; Meh+Q quit. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-entry%22&type=code)
              Cmd+T: Zellij new tab. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-new-tab%22&type=code)
              Cmd+Shift+[/]: Zellij quick tab/pane focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
+             Cmd+H/J/K/L: Zellij directional pane focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
              Meh+-/=: Zellij quick resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-resize%22&type=code)
              Meh+Page Up/Down: Zellij previous/next mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code)
            Conflicts:
              AeroSpace focus cycle shadows Ghostty tab cycle for Ctrl(+Shift)+Tab.
-             AeroSpace shadows Zellij quick actions for Alt+H/J/K/L and Alt+-/= ([source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-alt-quick-actions%22&type=code)).
+             AeroSpace shadows Zellij quick resize for Alt+-/= ([source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-alt-quick-actions%22&type=code)).
              AeroSpace workspace move shadows Zellij session/pane entry for Meh+O/P. */
         base_layer {
             bindings = <

@@ -204,7 +204,9 @@ class LayerAppNotesTest(unittest.TestCase):
             with self.subTest(slug=slug):
                 self.assertIn(f"keymap-ref%3A+{slug}", notes)
         self.assertIn("focus cycle shadows Ghostty tab cycle", notes)
-        self.assertIn("shadows Zellij quick actions for Alt+H/J/K/L", notes)
+        self.assertIn("Cmd+H/J/K/L: Zellij directional pane focus", notes)
+        self.assertNotIn("shadows Zellij quick actions for Alt+H/J/K/L", notes)
+        self.assertIn("shadows Zellij quick resize for Alt+-/=", notes)
         self.assertIn("zellij-alt-quick-actions", notes)
         self.assertIn("Meh+-/=", notes)
         self.assertIn("workspace move shadows Zellij session/pane entry for Meh+O/P", notes)
