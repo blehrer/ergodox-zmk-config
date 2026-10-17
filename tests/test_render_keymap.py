@@ -209,7 +209,9 @@ class LayerAppNotesTest(unittest.TestCase):
         self.assertIn("shadows Zellij quick resize for Alt+-/=", notes)
         self.assertIn("zellij-alt-quick-actions", notes)
         self.assertIn("Meh+-/=", notes)
-        self.assertIn("workspace move shadows Zellij session/pane entry for Meh+O/P", notes)
+        self.assertIn("Meh+G/H/N/S/T: Zellij mode entry", notes)
+        self.assertNotIn("Meh+G/H/N/O/P/S/T", notes)
+        self.assertNotIn("workspace move shadows Zellij session/pane entry", notes)
         self.assertNotIn("Ghostty consumes Cmd+T", notes)
 
     def test_symb_rendered_zellij_tab_note_without_ghostty_conflict(self):
