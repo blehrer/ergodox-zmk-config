@@ -51,6 +51,9 @@
   const keys = [...document.querySelectorAll('button.key[data-position]')];
   const sequenceLines = [...document.querySelectorAll('.keypress-sequence')];
   const resultLines = [...document.querySelectorAll('.keypress-results')];
+  const copyButtons = [...document.querySelectorAll(
+    '.keypress-copy-sequence, .keypress-copy-prompt'
+  )];
   const menu = document.getElementById('gesture-menu');
   let selectedKey = null;
 
@@ -91,19 +94,26 @@
     return tap;
   }
 
+  function sequenceText() {
+    return events.map(sequenceToken).join(' ');
+  }
+
+  function resultsText() {
+    return events.map(resultToken).join(' ');
+  }
+
   function updateBuffers() {
-    const sequence = events.length
-      ? events.map(sequenceToken).join(' ')
-      : 'No keys recorded';
-    const results = events.map(resultToken).join(' ');
+    const sequence = sequenceText();
+    const results = resultsText();
     sequenceLines.forEach((line) => {
-      line.textContent = sequence;
+      line.textContent = sequence || 'No keys recorded';
       line.scrollLeft = line.scrollWidth;
     });
     resultLines.forEach((line) => {
       line.textContent = results;
       line.scrollLeft = line.scrollWidth;
     });
+    copyButtons.forEach((button) => { button.disabled = !events.length; });
   }
 
   function closeMenu(restoreFocus = false) {
@@ -164,16 +174,55 @@
     if (targetMatches) location.hash = `layer-${entry.targetLayer}`;
   }
 
-  function exportEvents() {
-    const blob = new Blob([JSON.stringify(events, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'ergodox-keymap-tour-events.json';
-    link.click();
-    URL.revokeObjectURL(url);
+  function buildPrompt(sequence, results) {
+    return `Key sequence: ${sequence}
+Resolved tour result: ${results || '(none)'}
+
+If the apps in scope have not been recorded:
+- Ask: "Which programs should I have in scope for reconfiguring keybindings?"
+- For each supplied app, determine the folders and files used for its configuration.
+
+For each supplied app:
+- Look up what ${sequence} does in its configuration.
+- If it is unspecified and the app's defaults have not been cleared, determine its default behavior.
+- Report: ${sequence} does ... in \${app}.
+
+Ask me:
+- What do you want ${sequence} to do?
+
+Evaluate whether this conflicts with any supplied app. If conflicts exist, present concrete choices for resolving them. You may use additional key sequences copied from the keymap tour.`;
+  }
+
+  async function writeClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      textarea.remove();
+      if (!copied) throw new Error('Clipboard copy failed');
+    }
+  }
+
+  async function copyWithFeedback(text, button) {
+    const label = button.getAttribute('aria-label');
+    try {
+      await writeClipboard(text);
+      button.classList.add('copied');
+      button.setAttribute('aria-label', 'Copied');
+    } catch {
+      button.classList.add('copy-failed');
+      button.setAttribute('aria-label', 'Copy failed');
+    }
+    setTimeout(() => {
+      button.classList.remove('copied', 'copy-failed');
+      button.setAttribute('aria-label', label);
+    }, 1100);
   }
 
   function clearEvents() {
@@ -206,8 +255,14 @@
       return;
     }
 
-    if (event.target.closest('.keypress-export')) {
-      exportEvents();
+    const copySequence = event.target.closest('.keypress-copy-sequence');
+    if (copySequence) {
+      copyWithFeedback(sequenceText(), copySequence);
+      return;
+    }
+    const copyPrompt = event.target.closest('.keypress-copy-prompt');
+    if (copyPrompt) {
+      copyWithFeedback(buildPrompt(sequenceText(), resultsText()), copyPrompt);
       return;
     }
     if (event.target.closest('.keypress-clear')) {

@@ -139,6 +139,11 @@ h2{font-family:var(--font-mono);font-weight:640;font-size:22px;margin:2px 0;
   color:var(--ink-dim);font:inherit;cursor:pointer}
 .keypress-buffer button{padding:3px 5px;border-left:1px solid var(--hair)}
 .keypress-buffer button:hover,.gesture-menu button:hover{color:var(--accent)}
+.keypress-buffer button:disabled{cursor:default;color:var(--ink-faint);opacity:.45}
+.keypress-buffer button.copied{color:var(--green)}
+.keypress-buffer button.copy-failed{color:var(--rose)}
+.keypress-buffer button svg{display:block;width:13px;height:13px;fill:none;
+  stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
 
 /* each half wraps a heading landmark + the key cluster. The heading only shows
    once the halves stack (narrow screens); side-by-side it's hidden. */
