@@ -24,6 +24,7 @@ EXPECTED_SOURCE_SLUGS = frozenset(
         "zellij-mode-cycle",
         "zellij-mode-entry",
         "zellij-new-tab",
+        "zellij-keybind-tooltip",
         "zellij-quick-pane-tab",
         "zellij-quick-resize",
     }
@@ -205,6 +206,7 @@ class LayerAppNotesTest(unittest.TestCase):
                 self.assertIn(f"keymap-ref%3A+{slug}", notes)
         self.assertIn("focus cycle shadows Ghostty tab cycle", notes)
         self.assertIn("Cmd+H/J/K/L: Zellij directional pane focus", notes)
+        self.assertIn("Cmd+/: Zellij current-mode keybinding help", notes)
         self.assertNotIn("shadows Zellij quick actions for Alt+H/J/K/L", notes)
         self.assertIn("shadows Zellij quick resize for Alt+-/=", notes)
         self.assertIn("zellij-alt-quick-actions", notes)
