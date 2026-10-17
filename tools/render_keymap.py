@@ -421,7 +421,7 @@ def _note_behavior_tokens(text):
     return re.sub(r"(&amp;[a-z][a-z0-9_]*)", r'<span class="tok">\1</span>', text)
 
 
-def render_note_text(text):
+def render_note_text(text: str) -> str:
     """Escape note text, turn safe https:// markdown links into anchors, tint &tokens."""
     parts = []
     last = 0
