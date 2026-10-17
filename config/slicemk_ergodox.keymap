@@ -302,8 +302,19 @@
              Inner column, top to bottom: Page Up, Page Down, Shift.
            &extended_caps_word (bottom right): Caps Lock that ends at the next word.
            App bindings:
-             Meh + Page Up: Zellij previous mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code)
-             Meh + Page Down: Zellij next mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code) */
+             Alt+H/J/K/L: AeroSpace focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-directional-focus%22&type=code)
+             Alt+Shift+H/J/K/L: AeroSpace move. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-directional-move%22&type=code)
+             Alt+-/=: AeroSpace resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-resize%22&type=code)
+             Ctrl+Tab / Ctrl+Shift+Tab: AeroSpace focus cycle. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-focus-cycle%22&type=code)
+             Meh+G/H/N/O/P/S/T: Zellij mode entry; Meh+Q quit. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-entry%22&type=code)
+             Cmd+T and Cmd+Shift+[/]: Zellij quick tab/pane. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
+             Alt+-/=: Zellij quick resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-resize%22&type=code)
+             Meh+Page Up/Down: Zellij previous/next mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code)
+           Conflicts:
+             AeroSpace focus cycle shadows Ghostty tab cycle for Ctrl(+Shift)+Tab.
+             AeroSpace shadows Zellij quick actions for Alt+H/J/K/L and Alt+-/=.
+             AeroSpace workspace move shadows Zellij session/pane entry for Meh+O/P.
+             Ghostty consumes Cmd+T before Zellij. */
         base_layer {
             bindings = <
 &bootloader
@@ -327,7 +338,9 @@
              matching function key, with keypad + and * alongside.
            Thumb inner column: Volume Up (top), Volume Down (below it).
            App bindings:
-             F5: Still sends F5 to the focused terminal; in Ghostty, reload config. Running Zellij sessions reload their config automatically. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+ghostty-f5-reload%22&type=code) */
+             Cmd+Shift+[ / ]: Zellij previous/next tab or focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
+           Conflicts:
+             Ghostty consumes Cmd+Shift+[ / ] for previous/next terminal tab before Zellij receives them. */
         symbol_layer {
             bindings = <
 &bootloader
@@ -354,7 +367,14 @@
            Bottom row: Mission Control (show all windows) and voice command.
            Left thumbs &lm NAV3 <mod>: hold to reach NAV3 while ALSO holding
              GUI / Ctrl / Alt (see NAV3 below).
-           Right thumb &df11 RCLK LCLK: tap = left click, hold = right click. */
+           Right thumb &df11 RCLK LCLK: tap = left click, hold = right click.
+           App bindings:
+             Ctrl+Alt+Y/U/I/O/P: AeroSpace workspace select. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-workspaces%22&type=code)
+             With Shift from &lm NAVI LSHFT, Ctrl+Alt+Shift+Y/U/I/O/P move and follow. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-workspaces%22&type=code)
+             Alt+Tab / Alt+Shift+Tab: AeroSpace layout cycle (not macOS app switch). [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-layout-cycle%22&type=code)
+             Alt+Shift+': AeroSpace service mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-service-mode%22&type=code)
+             Ctrl+Shift+/: Shortcat toggle; domain com.sproutcube.Shortcat, key KeyboardShortcuts_toggleShortcat.
+             Ctrl+Shift+;: Scoot grid navigation; domain com.mjrusso.Scoot, key KeyboardShortcuts_useGridBasedNavigation. */
         nav_layer {
             bindings = <
 &bootloader
@@ -374,7 +394,12 @@
            an extra modifier (GUI / Ctrl / Alt) on top of the NAVI shortcuts, so
            the same arrows and workspace keys fire with that modifier added.
            Extras unique to this layer: top-left inner = Command+Ctrl+F (native
-           fullscreen); the far-right column swaps in Esc and Alt+' . */
+           fullscreen); the far-right column swaps in Esc and Alt+' .
+           Conflicts:
+             Ghostty consumes Cmd+Up/Down for prompt navigation.
+             Ghostty consumes Cmd+Left/Right to send line-boundary controls.
+             Ghostty consumes Alt+Left/Right to send word-navigation escapes.
+             Ghostty consumes Cmd+Ctrl+F to toggle fullscreen. */
         nav3_layer {
             bindings = <
 &bootloader

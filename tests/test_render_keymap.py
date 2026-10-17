@@ -11,6 +11,47 @@ SPEC = importlib.util.spec_from_file_location(
 render_keymap = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(render_keymap)
 
+EXPECTED_SOURCE_SLUGS = frozenset(
+    {
+        "aerospace-directional-focus",
+        "aerospace-directional-move",
+        "aerospace-focus-cycle",
+        "aerospace-layout-cycle",
+        "aerospace-resize",
+        "aerospace-service-mode",
+        "aerospace-workspaces",
+        "zellij-mode-cycle",
+        "zellij-mode-entry",
+        "zellij-quick-pane-tab",
+        "zellij-quick-resize",
+    }
+)
+SOURCE_SLUG_IN_URL = re.compile(
+    r"github\.com/blehrer/dotfiles/search\?q=%22keymap-ref%3A\+([a-z][a-z0-9-]*)%22"
+)
+
+
+def layer_desc(keymap_text, short):
+    for layer in render_keymap.parse_layers(keymap_text):
+        if layer["short"] == short:
+            return layer["desc"]
+    raise KeyError(short)
+
+
+def layer_notes_html(page, layer_idx):
+    pattern = (
+        rf'<section class="layer" id="layer-{layer_idx}">.*?'
+        r'<details class="notes".*?<div class="desc">(.*?)</div>\s*</details>'
+    )
+    match = re.search(pattern, page, re.S)
+    if not match:
+        raise AssertionError(f"layer-{layer_idx} notes missing from tour page")
+    return match.group(1)
+
+
+def extract_source_slugs(text):
+    return set(SOURCE_SLUG_IN_URL.findall(text))
+
 
 class RenderNoteTextTest(unittest.TestCase):
     def test_https_github_link_escapes_ampersand_in_href(self):
@@ -112,15 +153,96 @@ class RenderTelemetryTest(unittest.TestCase):
     def test_clear_returns_to_base_layer(self):
         self.assertIn("location.hash = 'layer-0';", self.page)
 
-    def test_page_includes_app_bindings_in_layer_notes(self):
-        self.assertIn("App bindings:", self.page)
-        self.assertIn("Meh + Page Up: Zellij previous mode.", self.page)
-        self.assertIn("Meh + Page Down: Zellij next mode.", self.page)
-        self.assertIn("F5: Still sends F5 to the focused terminal", self.page)
-        self.assertIn("%22keymap-ref%3A+zellij-mode-cycle%22", self.page)
-        self.assertIn("%22keymap-ref%3A+ghostty-f5-reload%22", self.page)
+    def test_page_includes_safe_source_link_markup(self):
         self.assertIn('class="source-link"', self.page)
         self.assertIn('rel="noopener noreferrer"', self.page)
+
+
+class LayerAppNotesTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.keymap = (ROOT / "config" / "slicemk_ergodox.keymap").read_text()
+        cls.page = render_keymap.build(
+            cls.keymap,
+            {
+                "commit": "working copy",
+                "date": "",
+                "repo_url": "",
+                "source": "config/slicemk_ergodox.keymap",
+                "panel": False,
+            },
+        )
+
+    def test_keymap_source_slugs_match_expected_catalog(self):
+        found = extract_source_slugs(self.keymap)
+        self.assertEqual(found, EXPECTED_SOURCE_SLUGS)
+
+    def test_keymap_has_no_ghostty_shortcat_or_scoot_source_links(self):
+        forbidden = ("ghostty-f5-reload", "ghostty-", "shortcat", "scoot")
+        for slug in extract_source_slugs(self.keymap):
+            lowered = slug.lower()
+            for bad in forbidden:
+                self.assertNotIn(bad, lowered, slug)
+
+    def test_base_rendered_app_bindings_and_conflicts(self):
+        notes = layer_notes_html(self.page, 0)
+        self.assertIn("App bindings:", notes)
+        self.assertIn("Conflicts:", notes)
+        for slug in (
+            "aerospace-directional-focus",
+            "aerospace-directional-move",
+            "aerospace-resize",
+            "aerospace-focus-cycle",
+            "zellij-mode-entry",
+            "zellij-quick-pane-tab",
+            "zellij-quick-resize",
+            "zellij-mode-cycle",
+        ):
+            with self.subTest(slug=slug):
+                self.assertIn(f"keymap-ref%3A+{slug}", notes)
+        self.assertIn("focus cycle shadows Ghostty tab cycle", notes)
+        self.assertIn("shadows Zellij quick actions for Alt+H/J/K/L", notes)
+        self.assertIn("workspace move shadows Zellij session/pane entry for Meh+O/P", notes)
+        self.assertIn("Ghostty consumes Cmd+T before Zellij", notes)
+
+    def test_symb_rendered_zellij_tab_note_and_conflict(self):
+        notes = layer_notes_html(self.page, 1)
+        self.assertIn("App bindings:", notes)
+        self.assertIn("Conflicts:", notes)
+        self.assertIn("zellij-quick-pane-tab", notes)
+        self.assertIn("Cmd+Shift+[", notes)
+        self.assertIn("Ghostty consumes", notes)
+        self.assertNotIn("ghostty-f5-reload", notes)
+        self.assertNotIn("F5:", notes)
+
+    def test_navi_rendered_app_bindings_and_shortcat_scoot_without_links(self):
+        notes = layer_notes_html(self.page, 2)
+        self.assertIn("App bindings:", notes)
+        for slug in (
+            "aerospace-workspaces",
+            "aerospace-layout-cycle",
+            "aerospace-service-mode",
+        ):
+            with self.subTest(slug=slug):
+                self.assertIn(f"keymap-ref%3A+{slug}", notes)
+        self.assertIn("com.sproutcube.Shortcat", notes)
+        self.assertIn("KeyboardShortcuts_toggleShortcat", notes)
+        self.assertIn("com.mjrusso.Scoot", notes)
+        self.assertIn("KeyboardShortcuts_useGridBasedNavigation", notes)
+        for chunk in notes.split("</div>"):
+            if "Shortcat" in chunk or "Scoot" in chunk:
+                self.assertNotIn('class="source-link"', chunk, chunk)
+                self.assertNotIn("keymap-ref%3A", chunk, chunk)
+
+    def test_nav3_rendered_conflicts_only_without_source_links(self):
+        notes = layer_notes_html(self.page, 3)
+        self.assertIn("Conflicts:", notes)
+        self.assertNotIn("App bindings:", notes)
+        self.assertNotIn('class="source-link"', notes)
+        self.assertIn("Cmd+Up/Down", notes)
+        self.assertIn("Cmd+Left/Right", notes)
+        self.assertIn("Alt+Left/Right", notes)
+        self.assertIn("Cmd+Ctrl+F", notes)
 
 
 class KeymapAppNotesTest(unittest.TestCase):
@@ -134,13 +256,11 @@ class KeymapAppNotesTest(unittest.TestCase):
         apps = base.rindex("App bindings:")
         self.assertLess(caps, apps, "App bindings should follow caps-word note")
 
-    def test_symb_f5_note_states_terminal_still_receives_f5(self):
-        symb = self.keymap.split("symbol_layer {", 1)[0]
-        self.assertIn("F5:", symb)
-        self.assertRegex(
-            symb,
-            re.compile(r"F5:.*(still sends F5|still reaches).*terminal", re.I),
-        )
+    def test_symb_has_no_ghostty_f5_app_note(self):
+        symb = layer_desc(self.keymap, "SYMB")
+        self.assertNotIn("ghostty-f5-reload", symb)
+        self.assertNotIn("F5:", symb)
+        self.assertIn("zellij-quick-pane-tab", symb)
 
 
 if __name__ == "__main__":
