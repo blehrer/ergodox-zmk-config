@@ -12,6 +12,24 @@ render_keymap = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(render_keymap)
 
 
+class RenderNoteTextTest(unittest.TestCase):
+    def test_https_github_link_escapes_ampersand_in_href(self):
+        text = "[code search](https://github.com/foo/bar?&type=code)"
+        out = render_keymap.render_note_text(text)
+        self.assertIn('href="https://github.com/foo/bar?&amp;type=code"', out)
+        self.assertIn('target="_blank"', out)
+        self.assertIn('rel="noopener"', out)
+        self.assertIn(">code search</a>", out)
+
+    def test_unsafe_link_and_script_stay_escaped(self):
+        text = "[bad](javascript:alert(1)) <script>"
+        out = render_keymap.render_note_text(text)
+        self.assertNotIn("<a ", out)
+        self.assertNotIn('href="javascript:', out)
+        self.assertIn("&lt;script&gt;", out)
+        self.assertIn("[bad](javascript:alert(1))", out)
+
+
 class RenderTelemetryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

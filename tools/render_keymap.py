@@ -414,6 +414,29 @@ def esc(s):
     return html.escape(s, quote=True)
 
 
+_MD_HTTPS_LINK = re.compile(r"\[([^\]]*)\]\((https://[^)]*)\)")
+
+
+def _note_behavior_tokens(text):
+    return re.sub(r"(&amp;[a-z][a-z0-9_]*)", r'<span class="tok">\1</span>', text)
+
+
+def render_note_text(text):
+    """Escape note text, turn safe https:// markdown links into anchors, tint &tokens."""
+    parts = []
+    last = 0
+    for m in _MD_HTTPS_LINK.finditer(text):
+        parts.append(_note_behavior_tokens(esc(text[last : m.start()])))
+        label = _note_behavior_tokens(esc(m.group(1)))
+        url = esc(m.group(2))
+        parts.append(
+            f'<a href="{url}" target="_blank" rel="noopener">{label}</a>'
+        )
+        last = m.end()
+    parts.append(_note_behavior_tokens(esc(text[last:])))
+    return "".join(parts)
+
+
 def kc(label):
     """A mini keycap chip for the combos section."""
     label = label.strip()
@@ -544,12 +567,11 @@ def render_notes(full):
                 out.append(gap)
             continue
         m = re.match(r"^( *)(.*)$", ln.rstrip())
-        indent, text = len(m.group(1)), esc(m.group(2))
+        indent, text = len(m.group(1)), render_note_text(m.group(2))
         # template rule: an extra line break between top-level comments (a line
         # at indent 0 starts a new comment; its indented children stay grouped).
         if started and indent == 0 and (not out or out[-1] != gap):
             out.append(gap)
-        text = re.sub(r"(&amp;[a-z][a-z0-9_]*)", r'<span class="tok">\1</span>', text)
         cls = "nl nh" if m.group(2).rstrip().endswith(":") else "nl"
         out.append(f'<div class="{cls}" style="--i:{indent}">{text}</div>')
         started = True
