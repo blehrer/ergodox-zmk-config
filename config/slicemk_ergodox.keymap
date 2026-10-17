@@ -307,14 +307,14 @@
              Alt+-/=: AeroSpace resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-resize%22&type=code)
              Ctrl+Tab / Ctrl+Shift+Tab: AeroSpace focus cycle. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+aerospace-focus-cycle%22&type=code)
              Meh+G/H/N/O/P/S/T: Zellij mode entry; Meh+Q quit. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-entry%22&type=code)
-             Cmd+T and Cmd+Shift+[/]: Zellij quick tab/pane. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
-             Alt+-/=: Zellij quick resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-resize%22&type=code)
+             Cmd+T: Zellij new tab. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-new-tab%22&type=code)
+             Cmd+Shift+[/]: Zellij quick tab/pane focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
+             Meh+-/=: Zellij quick resize. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-resize%22&type=code)
              Meh+Page Up/Down: Zellij previous/next mode. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-mode-cycle%22&type=code)
            Conflicts:
              AeroSpace focus cycle shadows Ghostty tab cycle for Ctrl(+Shift)+Tab.
-             AeroSpace shadows Zellij quick actions for Alt+H/J/K/L and Alt+-/=.
-             AeroSpace workspace move shadows Zellij session/pane entry for Meh+O/P.
-             Ghostty consumes Cmd+T before Zellij. */
+             AeroSpace shadows Zellij quick actions for Alt+H/J/K/L and Alt+-/= ([source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-alt-quick-actions%22&type=code)).
+             AeroSpace workspace move shadows Zellij session/pane entry for Meh+O/P. */
         base_layer {
             bindings = <
 &bootloader
@@ -338,9 +338,7 @@
              matching function key, with keypad + and * alongside.
            Thumb inner column: Volume Up (top), Volume Down (below it).
            App bindings:
-             Cmd+Shift+[ / ]: Zellij previous/next tab or focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code)
-           Conflicts:
-             Ghostty consumes Cmd+Shift+[ / ] for previous/next terminal tab before Zellij receives them. */
+             Cmd+Shift+[ / ]: Zellij previous/next tab or focus. [source](https://github.com/blehrer/dotfiles/search?q=%22keymap-ref%3A+zellij-quick-pane-tab%22&type=code) */
         symbol_layer {
             bindings = <
 &bootloader
@@ -395,7 +393,7 @@
            the same arrows and workspace keys fire with that modifier added.
            Extras unique to this layer: top-left inner = Command+Ctrl+F (native
            fullscreen); the far-right column swaps in Esc and Alt+' .
-           Conflicts:
+           Ghostty behavior:
              Ghostty consumes Cmd+Up/Down for prompt navigation.
              Ghostty consumes Cmd+Left/Right to send line-boundary controls.
              Ghostty consumes Alt+Left/Right to send word-navigation escapes.

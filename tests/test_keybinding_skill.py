@@ -46,6 +46,13 @@ EXTERNAL_PREFERENCE_DEFAULTS_EXAMPLES = (
     "defaults read com.mjrusso.Scoot KeyboardShortcuts_useGridBasedNavigation",
 )
 
+GHOSTTY_CONFLICT_AUDIT_MARKERS = (
+    "+list-keybinds",
+    "effective merged",
+    "outside chezmoi",
+    "effective bindings count as conflicts",
+)
+
 
 class KeybindingSkillTest(unittest.TestCase):
     def test_skill_exists_and_includes_workflow_markers(self):
@@ -82,6 +89,14 @@ class KeybindingSkillTest(unittest.TestCase):
         for example in EXTERNAL_PREFERENCE_DEFAULTS_EXAMPLES:
             with self.subTest(example=example):
                 self.assertIn(example, text)
+
+    def test_skill_documents_ghostty_effective_binding_audit(self):
+        text = SKILL.read_text()
+        for snippet in GHOSTTY_CONFLICT_AUDIT_MARKERS:
+            with self.subTest(snippet=snippet):
+                self.assertIn(snippet, text)
+        self.assertNotIn("+list-keybinds --default", text)
+        self.assertNotIn("ghostty --default", text)
 
 
 if __name__ == "__main__":

@@ -20,8 +20,10 @@ EXPECTED_SOURCE_SLUGS = frozenset(
         "aerospace-resize",
         "aerospace-service-mode",
         "aerospace-workspaces",
+        "zellij-alt-quick-actions",
         "zellij-mode-cycle",
         "zellij-mode-entry",
+        "zellij-new-tab",
         "zellij-quick-pane-tab",
         "zellij-quick-resize",
     }
@@ -194,6 +196,7 @@ class LayerAppNotesTest(unittest.TestCase):
             "aerospace-resize",
             "aerospace-focus-cycle",
             "zellij-mode-entry",
+            "zellij-new-tab",
             "zellij-quick-pane-tab",
             "zellij-quick-resize",
             "zellij-mode-cycle",
@@ -202,16 +205,18 @@ class LayerAppNotesTest(unittest.TestCase):
                 self.assertIn(f"keymap-ref%3A+{slug}", notes)
         self.assertIn("focus cycle shadows Ghostty tab cycle", notes)
         self.assertIn("shadows Zellij quick actions for Alt+H/J/K/L", notes)
+        self.assertIn("zellij-alt-quick-actions", notes)
+        self.assertIn("Meh+-/=", notes)
         self.assertIn("workspace move shadows Zellij session/pane entry for Meh+O/P", notes)
-        self.assertIn("Ghostty consumes Cmd+T before Zellij", notes)
+        self.assertNotIn("Ghostty consumes Cmd+T", notes)
 
-    def test_symb_rendered_zellij_tab_note_and_conflict(self):
+    def test_symb_rendered_zellij_tab_note_without_ghostty_conflict(self):
         notes = layer_notes_html(self.page, 1)
         self.assertIn("App bindings:", notes)
-        self.assertIn("Conflicts:", notes)
+        self.assertNotIn("Conflicts:", notes)
         self.assertIn("zellij-quick-pane-tab", notes)
         self.assertIn("Cmd+Shift+[", notes)
-        self.assertIn("Ghostty consumes", notes)
+        self.assertNotIn("Ghostty consumes", notes)
         self.assertNotIn("ghostty-f5-reload", notes)
         self.assertNotIn("F5:", notes)
 
@@ -234,9 +239,10 @@ class LayerAppNotesTest(unittest.TestCase):
                 self.assertNotIn('class="source-link"', chunk, chunk)
                 self.assertNotIn("keymap-ref%3A", chunk, chunk)
 
-    def test_nav3_rendered_conflicts_only_without_source_links(self):
+    def test_nav3_rendered_ghostty_behavior_without_source_links(self):
         notes = layer_notes_html(self.page, 3)
-        self.assertIn("Conflicts:", notes)
+        self.assertIn("Ghostty behavior:", notes)
+        self.assertNotIn("Conflicts:", notes)
         self.assertNotIn("App bindings:", notes)
         self.assertNotIn('class="source-link"', notes)
         self.assertIn("Cmd+Up/Down", notes)

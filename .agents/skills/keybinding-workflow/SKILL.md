@@ -45,6 +45,14 @@ chezmoi source-path <active-config>
 
 Inspect explicit keybindings there and the app’s installed defaults (docs, `defaults read`, or app settings UI). For every app in scope, report what the pasted **Key sequence:** does today (ZMK output plus in-app effect). Ask what behavior the user wants. Flag conflicts (same chord, different meaning; or ZMK chord shadowing an app shortcut).
 
+For **Ghostty** conflict audits, use the installed binary’s **effective merged** binding list—not factory defaults, not `--default`, and not a chezmoi template alone. The live macOS config may live outside chezmoi (for example `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty`); only effective bindings count as conflicts:
+
+```sh
+/Applications/Ghostty.app/Contents/MacOS/ghostty +list-keybinds
+```
+
+If that command cannot be run or its output is ambiguous, stop and report uncertainty instead of inventing a Ghostty conflict.
+
 When the binding lives in macOS User Defaults instead of chezmoi-managed files, treat it as **externally managed**. Confirm the live value before documenting it:
 
 ```sh
@@ -96,7 +104,7 @@ Use only `https://` links in notes and reports—never `http://` or repo-local f
 ## Verify
 
 1. Apply only the managed paths you changed: `chezmoi apply <target>` (for example the Zellij or Ghostty config path).
-2. Run each affected app’s native validator if one exists (e.g. `zellij setup --check`, Ghostty `+validate-config`).
+2. Run each affected app’s native validator if one exists (e.g. `zellij setup --check`, Ghostty `+validate-config`). After Ghostty config changes, re-check conflicts with `ghostty +list-keybinds` on the effective macOS configuration.
 3. In this repository:
 
 ```sh
