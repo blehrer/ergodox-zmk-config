@@ -31,6 +31,21 @@ STOP_AND_ASK_MARKERS = (
     "Conflict resolution requires",
 )
 
+EXTERNAL_PREFERENCE_MARKERS = (
+    "externally managed",
+    "defaults read",
+    "preference domain",
+    "do not add a `keymap-ref:`",
+    "GitHub source link",
+    "cannot be read",
+    "differs from the documented chord",
+)
+
+EXTERNAL_PREFERENCE_DEFAULTS_EXAMPLES = (
+    "defaults read com.sproutcube.Shortcat KeyboardShortcuts_toggleShortcat",
+    "defaults read com.mjrusso.Scoot KeyboardShortcuts_useGridBasedNavigation",
+)
+
 
 class KeybindingSkillTest(unittest.TestCase):
     def test_skill_exists_and_includes_workflow_markers(self):
@@ -58,6 +73,15 @@ class KeybindingSkillTest(unittest.TestCase):
     def test_skill_does_not_disable_model_invocation(self):
         text = SKILL.read_text()
         self.assertNotIn("disable-model-invocation: true", text)
+
+    def test_skill_documents_external_preferences(self):
+        text = SKILL.read_text()
+        for snippet in EXTERNAL_PREFERENCE_MARKERS:
+            with self.subTest(snippet=snippet):
+                self.assertIn(snippet, text)
+        for example in EXTERNAL_PREFERENCE_DEFAULTS_EXAMPLES:
+            with self.subTest(example=example):
+                self.assertIn(example, text)
 
 
 if __name__ == "__main__":

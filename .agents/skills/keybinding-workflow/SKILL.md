@@ -31,6 +31,7 @@ Do not edit files until the user answers when any of these apply:
 - A default binding cannot be determined for an app that still relies on defaults.
 - A marker ID already identifies unrelated logic in dotfiles.
 - Conflict resolution requires choosing which existing behavior to replace.
+- An **externally managed** macOS preference cannot be read, or `defaults read` shows a chord that differs from the documented chord in **App bindings:**.
 
 Report validation failures and leave unrelated files unchanged.
 
@@ -44,6 +45,15 @@ chezmoi source-path <active-config>
 
 Inspect explicit keybindings there and the app’s installed defaults (docs, `defaults read`, or app settings UI). For every app in scope, report what the pasted **Key sequence:** does today (ZMK output plus in-app effect). Ask what behavior the user wants. Flag conflicts (same chord, different meaning; or ZMK chord shadowing an app shortcut).
 
+When the binding lives in macOS User Defaults instead of chezmoi-managed files, treat it as **externally managed**. Confirm the live value before documenting it:
+
+```sh
+defaults read com.sproutcube.Shortcat KeyboardShortcuts_toggleShortcat
+defaults read com.mjrusso.Scoot KeyboardShortcuts_useGridBasedNavigation
+```
+
+Record the preference domain and key in the `defaults read` command (see examples above).
+
 ## Implement
 
 - **Conflict-free and unambiguous:** implement immediately in the keymap and/or dotfiles.
@@ -52,6 +62,10 @@ Inspect explicit keybindings there and the app’s installed defaults (docs, `de
 ### ZMK keymap
 
 Edit bindings in `config/slicemk_ergodox.keymap` when the fix belongs on the keyboard.
+
+### Externally managed preference
+
+For **externally managed** shortcuts (User Defaults only): update **App bindings:** with the resolved chord, app, behavior, and the preference domain and key used with `defaults read`. The binding is not in dotfiles—do not add a `keymap-ref:` marker or GitHub source link.
 
 ### Dotfiles marker
 
