@@ -102,6 +102,14 @@
     return events.map(resultToken).join(' ');
   }
 
+  function layersText() {
+    const layers = [];
+    events.forEach((entry) => {
+      if (entry.layerName !== layers.at(-1)) layers.push(entry.layerName);
+    });
+    return layers.join(' → ');
+  }
+
   function updateBuffers() {
     const sequence = sequenceText();
     const results = resultsText();
@@ -175,7 +183,9 @@
   }
 
   function buildPrompt(sequence, result) {
+    const layers = layersText();
     return `Key sequence: ${sequence}
+Layers: ${layers || '(none)'}
 Resolved tour result: ${result || '(none)'}
 
 If the apps in scope have not been recorded:
