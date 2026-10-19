@@ -54,8 +54,13 @@
   const copyButtons = [...document.querySelectorAll(
     '.keypress-copy-sequence, .keypress-copy-prompt'
   )];
+  const promptPreview = document.querySelector('.keypress-prompt-preview');
+  const toast = document.getElementById('copy-toast');
   const menu = document.getElementById('gesture-menu');
   let selectedKey = null;
+  let toastTimer = null;
+  const PROMPT_PLACEHOLDER =
+    'Record keys on any layer board to build a prompt.';
 
   function loadEvents() {
     try {
@@ -122,6 +127,24 @@
       line.scrollLeft = line.scrollWidth;
     });
     copyButtons.forEach((button) => { button.disabled = !events.length; });
+    if (promptPreview) {
+      promptPreview.textContent = events.length
+        ? buildPrompt(sequence, results)
+        : PROMPT_PLACEHOLDER;
+    }
+  }
+
+  function showToast(message, failed = false) {
+    if (!toast) return;
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.classList.toggle('fail', failed);
+    toast.hidden = false;
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      toast.hidden = true;
+    }, 2200);
   }
 
   function closeMenu(restoreFocus = false) {
@@ -221,13 +244,21 @@ Evaluate whether this conflicts with any supplied app. If conflicts exist, prese
 
   async function copyWithFeedback(text, button) {
     const label = button.getAttribute('aria-label');
+    const isPrompt = button.classList.contains('keypress-copy-prompt');
     try {
       await writeClipboard(text);
       button.classList.add('copied');
       button.setAttribute('aria-label', 'Copied');
+      showToast(
+        isPrompt ? 'Reconfiguration prompt copied' : 'Key sequence copied'
+      );
     } catch {
       button.classList.add('copy-failed');
       button.setAttribute('aria-label', 'Copy failed');
+      showToast(
+        isPrompt ? 'Prompt copy failed' : 'Key sequence copy failed',
+        true
+      );
     }
     setTimeout(() => {
       button.classList.remove('copied', 'copy-failed');
